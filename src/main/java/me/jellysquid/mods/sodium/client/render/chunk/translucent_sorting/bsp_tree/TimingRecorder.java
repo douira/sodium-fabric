@@ -119,6 +119,10 @@ public class TimingRecorder {
         this.recordDelta(size, System.nanoTime() - startNanos);
     }
 
+    public void recordDelta(int size, long startNanos, long endNanos) {
+        this.recordDelta(size, endNanos - startNanos);
+    }
+
     synchronized public void recordDelta(int size, long delta) {
         if (!this.warmedUp) {
             this.remainingWarmup--;

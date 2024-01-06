@@ -22,10 +22,10 @@ import net.minecraft.util.math.ChunkSectionPos;
  */
 public class BSPDynamicData extends DynamicData {
     // /tp ~ ~-100 ~
-    public static final TimingRecorder sortInitialRecorder = new TimingRecorder("BSP sort initial");
-    public static final TimingRecorder sortTriggerRecorder = new TimingRecorder("BSP sort trigger");
-    public static final TimingRecorder buildRecorder = new TimingRecorder("BSP build");
-    public static final TimingRecorder partialUpdateRecorder = new TimingRecorder("BSP partial update", 10, true);
+    private static final TimingRecorder sortInitialRecorder = new TimingRecorder("BSP sort initial");
+    private static final TimingRecorder sortTriggerRecorder = new TimingRecorder("BSP sort trigger");
+    private static final TimingRecorder buildRecorder = new TimingRecorder("BSP build");
+    private static final TimingRecorder partialUpdateRecorder = new TimingRecorder("BSP partial update", 10, true);
 
     private static final int NODE_REUSE_MIN_GENERATION = 1;
 

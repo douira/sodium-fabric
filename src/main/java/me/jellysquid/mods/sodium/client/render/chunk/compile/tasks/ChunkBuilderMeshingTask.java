@@ -15,6 +15,7 @@ import me.jellysquid.mods.sodium.client.render.chunk.terrain.DefaultTerrainRende
 import me.jellysquid.mods.sodium.client.render.chunk.terrain.TerrainRenderPass;
 import me.jellysquid.mods.sodium.client.render.chunk.translucent_sorting.SortType;
 import me.jellysquid.mods.sodium.client.render.chunk.translucent_sorting.TranslucentGeometryCollector;
+import me.jellysquid.mods.sodium.client.render.chunk.translucent_sorting.bsp_tree.TimingRecorder;
 import me.jellysquid.mods.sodium.client.render.chunk.translucent_sorting.data.TranslucentData;
 import me.jellysquid.mods.sodium.client.util.task.CancellationToken;
 import me.jellysquid.mods.sodium.client.world.WorldSlice;
@@ -51,8 +52,12 @@ public class ChunkBuilderMeshingTask extends ChunkBuilderTask<ChunkBuildOutput> 
         this.renderContext = renderContext;
     }
 
+    private static final TimingRecorder meshingRecorder = new TimingRecorder("Meshing");
+
     @Override
     public ChunkBuildOutput execute(ChunkBuildContext buildContext, CancellationToken cancellationToken) {
+        var start = System.nanoTime();
+
         BuiltSectionInfo.Builder renderData = new BuiltSectionInfo.Builder();
         ChunkOcclusionDataBuilder occluder = new ChunkOcclusionDataBuilder();
 
@@ -149,6 +154,7 @@ public class ChunkBuilderMeshingTask extends ChunkBuilderTask<ChunkBuildOutput> 
 
         Map<TerrainRenderPass, BuiltSectionMeshParts> meshes = new Reference2ReferenceOpenHashMap<>();
 
+        int totalQuadCount = 0;
         for (TerrainRenderPass pass : DefaultTerrainRenderPasses.ALL) {
             // consolidate all translucent geometry into UNASSIGNED so that it's rendered
             // all together if it needs to share an index buffer between the directions
@@ -158,6 +164,12 @@ public class ChunkBuilderMeshingTask extends ChunkBuilderTask<ChunkBuildOutput> 
             if (mesh != null) {
                 meshes.put(pass, mesh);
                 renderData.addRenderPass(pass);
+
+                for (var range : mesh.getVertexRanges()) {
+                    if (range != null) {
+                        totalQuadCount += TranslucentData.vertexCountToQuadCount(range.vertexCount());
+                    }
+                }
             }
         }
 
@@ -174,7 +186,9 @@ public class ChunkBuilderMeshingTask extends ChunkBuilderTask<ChunkBuildOutput> 
 
         renderData.setOcclusionData(occluder.build());
 
-        return new ChunkBuildOutput(this.render, this.submitTime, translucentData, renderData.build(), meshes);
+        var output = new ChunkBuildOutput(this.render, this.submitTime, translucentData, renderData.build(), meshes);
+        meshingRecorder.recordNow(totalQuadCount, start);
+        return output;
     }
 
     private CrashException fillCrashInfo(CrashReport report, WorldSlice slice, BlockPos pos) {

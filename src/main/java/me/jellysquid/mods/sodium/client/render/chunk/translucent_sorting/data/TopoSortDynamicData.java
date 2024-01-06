@@ -32,8 +32,8 @@ import net.minecraft.util.math.ChunkSectionPos;
  * that helpful to the sorting algorithm.
  */
 public class TopoSortDynamicData extends DynamicData {
-    public static final TimingRecorder topoSortRecorder = new TimingRecorder("Topo sort");
-    public static final TimingRecorder distanceSortRecorder = new TimingRecorder("Distance sort");
+    private static final TimingRecorder topoSortRecorder = new TimingRecorder("Topo sort");
+    private static final TimingRecorder distanceSortRecorder = new TimingRecorder("Distance sort");
 
     private final TQuad[] quads;
     private boolean GFNITrigger = !SortTriggering.DEBUG_SKIP_TOPO_SORT;
