@@ -20,10 +20,6 @@ import net.minecraft.util.math.ChunkSectionPos;
  * of translucent data objects for each sort type and delegates triggering of
  * sections for dynamic sorting to the trigger components.
  * 
- * TODO: see if the duplicated geometry bug happens when:
- * - hashing for triggering is removed
- * - hashing for translucent data reuse is removed
- * 
  * @author douira (the translucent_sorting package)
  */
 public class SortTriggering {
@@ -41,6 +37,15 @@ public class SortTriggering {
      * and a boolean indicating if the trigger was an direct trigger.
      */
     private BiConsumer<Long, Boolean> triggerSectionCallback;
+
+    /**
+     * The dynamic data being caught up. When a section is rebuilt (initially or
+     * later) it might not have the required trigger data registered yet so that it
+     * might miss being triggered between being scheduled for rebuild and being
+     * integrated. This is solved by catching up the section being integrated with
+     * the movement that has happened in the mean time.
+     */
+    private DynamicData catchupData = null;
 
     /**
      * The number of triggered sections and normals. The normals are kept in a
@@ -64,7 +69,7 @@ public class SortTriggering {
 
         void removeSection(long sectionPos, TranslucentData data);
 
-        void addSection(ChunkSectionPos sectionPos, T data, Vector3dc cameraPos);
+        void integrateSection(SortTriggering ts, ChunkSectionPos sectionPos, T data, CameraMovement movement);
     }
 
     /**
@@ -99,15 +104,41 @@ public class SortTriggering {
         triggerSectionCallback = null;
     }
 
+    private boolean isCatchingUp() {
+        return this.catchupData != null;
+    }
+
     void triggerSectionGFNI(long sectionPos, AlignableNormal normal) {
+        if (this.isCatchingUp()) {
+            this.triggerSectionCatchup(sectionPos, false);
+            return;
+        }
+
         this.triggeredNormals.add(normal);
         this.triggerSectionCallback.accept(sectionPos, false);
         this.gfniTriggerCount++;
     }
 
     void triggerSectionDirect(ChunkSectionPos sectionPos) {
+        if (this.isCatchingUp()) {
+            this.triggerSectionCatchup(sectionPos.asLong(), true);
+            return;
+        }
+
         this.triggerSectionCallback.accept(sectionPos.asLong(), true);
         this.directTriggerCount++;
+    }
+
+    private void triggerSectionCatchup(long sectionPos, boolean isDirectTrigger) {
+        // catchup triggering might be disabled
+        if (this.triggerSectionCallback != null) {
+            // do prepare triggere here since it can't be done through the render section as
+            // it hasn't been put there yet or it contains an old data object
+            this.catchupData.prepareTrigger(isDirectTrigger);
+
+            // schedule the section to be re-sorted
+            this.triggerSectionCallback.accept(sectionPos, isDirectTrigger);
+        }
     }
 
     public void applyTriggerChanges(TopoSortDynamicData data, ChunkSectionPos pos, Vector3dc cameraPos) {
@@ -115,7 +146,10 @@ public class SortTriggering {
             this.gfni.removeSection(pos.asLong(), data);
         }
         if (data.getAndFlushTurnDirectTriggerOn()) {
-            this.direct.addSection(pos, data, cameraPos);
+            // use dummy camera movement since there's no risk of the camera moving between
+            // the section being scheduled and integrated (there's no building going on
+            // here)
+            this.direct.integrateSection(this, pos, data, new CameraMovement(cameraPos, cameraPos));
         }
         if (data.getAndFlushTurnDirectTriggerOff()) {
             this.direct.removeSection(pos.asLong(), data);
@@ -152,12 +186,9 @@ public class SortTriggering {
      * Integrates the data from a geometry collector into GFNI. The geometry
      * collector contains the translucent face planes of a single section. This
      * method may also remove the section if it has become irrelevant.
-     * 
-     * @param builder the geometry collector to integrate
-     * @return the sort type that the geometry collector's relevance heuristic
-     *         determined
      */
-    public void integrateTranslucentData(TranslucentData oldData, TranslucentData newData, Vector3dc cameraPos) {
+    public void integrateTranslucentData(TranslucentData oldData, TranslucentData newData, Vector3dc cameraPos,
+            BiConsumer<Long, Boolean> triggerSectionCallback) {
         if (oldData == newData) {
             return;
         }
@@ -169,25 +200,31 @@ public class SortTriggering {
         if (newData instanceof DynamicData dynamicData) {
             this.direct.removeSection(pos.asLong(), oldData);
             this.decrementSortTypeCounter(oldData);
+            this.triggerSectionCallback = triggerSectionCallback;
+            this.catchupData = dynamicData;
+            var movement = new CameraMovement(dynamicData.getInitialCameraPos(), cameraPos);
 
             if (dynamicData instanceof TopoSortDynamicData topoSortData) {
                 if (topoSortData.GFNITriggerEnabled()) {
-                    this.gfni.addSection(pos, topoSortData, cameraPos);
+                    this.gfni.integrateSection(this, pos, topoSortData, movement);
                 } else {
                     // remove the trigger data since this section is never going to get gfni
                     // triggering (there's no option to add sections to GFNI later currently)
                     topoSortData.clearGeometryPlanes();
                 }
                 if (topoSortData.directTriggerEnabled()) {
-                    this.direct.addSection(pos, topoSortData, cameraPos);
+                    this.direct.integrateSection(this, pos, topoSortData, movement);
                 }
 
                 // clear trigger changes on data change because the current state of trigger
                 // types was just applied
                 topoSortData.clearTriggerChanges();
             } else {
-                this.gfni.addSection(pos, dynamicData, cameraPos);
+                this.gfni.integrateSection(this, pos, dynamicData, movement);
             }
+
+            this.triggerSectionCallback = null;
+            this.catchupData = null;
         } else {
             this.removeSection(oldData, pos.asLong());
             return;
@@ -199,13 +236,14 @@ public class SortTriggering {
         if (sortBehavior == SortBehavior.OFF) {
             list.add("TS OFF");
         } else {
-            list.add("TS (%s) NL=%02d TrN=%02d TrS=G%03d/D%03d".formatted(
+            list.add("TS (%s,%s) NL=%02d TrN=%02d TrS=G%03d/D%03d".formatted(
                     sortBehavior.getShortName(),
+                    SodiumClientMod.options().performance.deferSortMode.getShortName(),
                     this.gfni.getUniqueNormalCount(),
                     this.triggeredNormalCount,
                     this.gfniTriggerCount,
                     this.directTriggerCount));
-            list.add("N=%05d SNR=%05d STA=%04d DYN=%04d (DIR=%04d)".formatted(
+            list.add("N=%05d SNR=%05d STA=%05d DYN=%05d (DIR=%02d)".formatted(
                     this.sortTypeCounters[SortType.NONE.ordinal()],
                     this.sortTypeCounters[SortType.STATIC_NORMAL_RELATIVE.ordinal()],
                     this.sortTypeCounters[SortType.STATIC_TOPO.ordinal()],

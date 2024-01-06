@@ -46,8 +46,8 @@ import org.joml.Vector3dc;
 public class ChunkBuilderMeshingTask extends ChunkBuilderTask<ChunkBuildOutput> {
     private final ChunkRenderContext renderContext;
 
-    public ChunkBuilderMeshingTask(RenderSection render, int buildTime, Vector3dc cameraPos, ChunkRenderContext renderContext) {
-        super(render, buildTime, cameraPos);
+    public ChunkBuilderMeshingTask(RenderSection render, int buildTime, Vector3dc absoluteCameraPos, ChunkRenderContext renderContext) {
+        super(render, buildTime, absoluteCameraPos);
         this.renderContext = renderContext;
     }
 
@@ -169,7 +169,7 @@ public class ChunkBuilderMeshingTask extends ChunkBuilderTask<ChunkBuildOutput> 
         TranslucentData translucentData = null;
         if (collector != null) {
             translucentData = collector.getTranslucentData(
-                render.getTranslucentData(), meshes.get(DefaultTerrainRenderPasses.TRANSLUCENT), cameraPos);
+                render.getTranslucentData(), meshes.get(DefaultTerrainRenderPasses.TRANSLUCENT), this);
         }
 
         renderData.setOcclusionData(occluder.build());

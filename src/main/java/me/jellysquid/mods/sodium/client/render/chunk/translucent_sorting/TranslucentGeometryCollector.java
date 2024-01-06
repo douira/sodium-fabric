@@ -5,7 +5,6 @@ import java.util.Arrays;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.joml.Vector3f;
-import org.joml.Vector3fc;
 
 import it.unimi.dsi.fastutil.objects.ReferenceArrayList;
 import me.jellysquid.mods.sodium.client.SodiumClientMod;
@@ -19,6 +18,7 @@ import me.jellysquid.mods.sodium.client.render.chunk.translucent_sorting.bsp_tre
 import me.jellysquid.mods.sodium.client.render.chunk.translucent_sorting.data.AnyOrderData;
 import me.jellysquid.mods.sodium.client.render.chunk.translucent_sorting.data.BSPDynamicData;
 import me.jellysquid.mods.sodium.client.render.chunk.translucent_sorting.data.DynamicData;
+import me.jellysquid.mods.sodium.client.render.chunk.translucent_sorting.data.CombinedCameraPos;
 import me.jellysquid.mods.sodium.client.render.chunk.translucent_sorting.data.NoData;
 import me.jellysquid.mods.sodium.client.render.chunk.translucent_sorting.data.PresentTranslucentData;
 import me.jellysquid.mods.sodium.client.render.chunk.translucent_sorting.data.StaticNormalRelativeData;
@@ -361,7 +361,7 @@ public class TranslucentGeometryCollector {
         }
 
         if (!this.hasUnaligned) {
-            boolean twoOpposingNormals = this.alignedFacingBitmap == ModelQuadFacing.OPPOSING_X
+            boolean opposingAlignedNormals = this.alignedFacingBitmap == ModelQuadFacing.OPPOSING_X
                     || this.alignedFacingBitmap == ModelQuadFacing.OPPOSING_Y
                     || this.alignedFacingBitmap == ModelQuadFacing.OPPOSING_Z;
 
@@ -369,7 +369,7 @@ public class TranslucentGeometryCollector {
             // if there are just two normals, they are exact opposites of eachother and they
             // each only have one distance, there is no way to see through one face to the
             // other.
-            if (planeCount == 2 && twoOpposingNormals) {
+            if (planeCount == 2 && opposingAlignedNormals) {
                 return SortType.NONE;
             }
 
@@ -400,7 +400,7 @@ public class TranslucentGeometryCollector {
             // there are up to two normals that are opposing, this means no dynamic sorting
             // is necessary. Without static sorting, the geometry to trigger on could be
             // reduced but this isn't done here as we assume static sorting is possible.
-            if (twoOpposingNormals || alignedNormalCount == 1) {
+            if (opposingAlignedNormals || alignedNormalCount == 1) {
                 return SortType.STATIC_NORMAL_RELATIVE;
             }
         } else if (alignedNormalCount == 0) {
@@ -457,7 +457,7 @@ public class TranslucentGeometryCollector {
         return this.sortType;
     }
 
-    private TranslucentData makeNewTranslucentData(BuiltSectionMeshParts translucentMesh, Vector3fc cameraPos,
+    private TranslucentData makeNewTranslucentData(BuiltSectionMeshParts translucentMesh, CombinedCameraPos cameraPos,
             TranslucentData oldData) {
         if (this.sortType == SortType.NONE) {
             return AnyOrderData.fromMesh(translucentMesh, this.quads, this.sectionPos, null);
@@ -526,7 +526,7 @@ public class TranslucentGeometryCollector {
     }
 
     public TranslucentData getTranslucentData(
-            TranslucentData oldData, BuiltSectionMeshParts translucentMesh, Vector3fc cameraPos) {
+            TranslucentData oldData, BuiltSectionMeshParts translucentMesh, CombinedCameraPos cameraPos) {
         // means there is no translucent geometry
         if (translucentMesh == null) {
             return new NoData(sectionPos);

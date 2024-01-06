@@ -321,7 +321,7 @@ public class RenderSectionManager {
             if (result instanceof ChunkBuildOutput chunkBuildOutput) {
                 this.updateSectionInfo(result.render, chunkBuildOutput.info);
                 if (chunkBuildOutput.translucentData != null) {
-                    this.ts.integrateTranslucentData(oldData, chunkBuildOutput.translucentData, this.cameraPosition);
+                    this.ts.integrateTranslucentData(oldData, chunkBuildOutput.translucentData, this.cameraPosition, this::scheduleSort);
 
                     // a rebuild always generates new translucent data which means applyTriggerChanges isn't necessary
                     result.render.setTranslucentData(chunkBuildOutput.translucentData);
@@ -396,6 +396,7 @@ public class RenderSectionManager {
 
     public void updateChunks(boolean updateImmediately) {
         var thisFrameBlockingCollector = this.lastBlockingCollector;
+        this.lastBlockingCollector = null;
         if (thisFrameBlockingCollector == null) {
             thisFrameBlockingCollector = new ChunkJobCollector(Integer.MAX_VALUE, this.buildResults::add);
         }
@@ -406,7 +407,6 @@ public class RenderSectionManager {
             this.submitSectionTasks(thisFrameBlockingCollector, thisFrameBlockingCollector, thisFrameBlockingCollector);
 
             thisFrameBlockingCollector.awaitCompletion(this.builder);
-            this.lastBlockingCollector = null;
         } else {
             var nextFrameBlockingCollector = new ChunkJobCollector(Integer.MAX_VALUE, this.buildResults::add);
             var deferredCollector = new ChunkJobCollector(this.builder.getSchedulingBudget(), this.buildResults::add);
@@ -459,8 +459,32 @@ public class RenderSectionManager {
             ChunkBuilderTask<? extends BuilderTaskOutput> task;
             if (type == ChunkUpdateType.SORT || type == ChunkUpdateType.IMPORTANT_SORT) {
                 task = this.createSortTask(section, frame);
+
+                if (task == null) {
+                    // when a sort task is null it means the render section has no dynamic data and
+                    // doesn't need to be sorted. Nothing needs to be done.
+                    continue;
+                }
             } else {
                 task = this.createRebuildTask(section, frame);
+
+                if (task == null) {
+                    // if the section is empty or doesn't exist submit this null-task to set the
+                    // built flag on the render section.
+                    // It's important to use a NoData instead of null translucency data here in
+                    // order for it to clear the old data from the translucency sorting system.
+                    // This doesn't apply to sorting tasks as that would result in the section being
+                    // marked as empty just because it was scheduled to be sorted and its dynamic
+                    // data has since been removed. In that case simply nothing is done as the
+                    // rebuild that must have happened in the mean time includes new non-dynamic
+                    // index data.
+                    var result = ChunkJobResult.successfully(new ChunkBuildOutput(
+                            section, frame, new NoData(section.getPosition()),
+                            BuiltSectionInfo.EMPTY, Collections.emptyMap()));
+                    this.buildResults.add(result);
+
+                    section.setTaskCancellationToken(null);
+                }
             }
 
             if (task != null) {
@@ -468,18 +492,6 @@ public class RenderSectionManager {
                 collector.addSubmittedJob(job);
 
                 section.setTaskCancellationToken(job);
-            } else {
-                // if the section is empty, doesn't exist or no sort task needs to be created
-                // for non-dynamic data, submit this null-task to set the built flag on the
-                // render section.
-                // It's important to use a NoData instead of null translucency data here in
-                // order for it to clear the old data from the translucency sorting system
-                var result = ChunkJobResult.successfully(new ChunkBuildOutput(
-                        section, frame, new NoData(section.getPosition()),
-                        BuiltSectionInfo.EMPTY, Collections.emptyMap()));
-                this.buildResults.add(result);
-
-                section.setTaskCancellationToken(null);
             }
 
             section.setLastSubmittedFrame(frame);
@@ -690,8 +702,8 @@ public class RenderSectionManager {
 
         list.add(String.format("Chunk Queues: U=%02d (P0=%03d | P1=%03d | P2=%03d)",
                 this.buildResults.size(),
-                this.taskLists.get(ChunkUpdateType.IMPORTANT_REBUILD).size(),
-                this.taskLists.get(ChunkUpdateType.REBUILD).size(),
+                this.taskLists.get(ChunkUpdateType.IMPORTANT_REBUILD).size() + this.taskLists.get(ChunkUpdateType.IMPORTANT_SORT).size(),
+                this.taskLists.get(ChunkUpdateType.REBUILD).size() + this.taskLists.get(ChunkUpdateType.SORT).size(),
                 this.taskLists.get(ChunkUpdateType.INITIAL_BUILD).size())
         );
 
