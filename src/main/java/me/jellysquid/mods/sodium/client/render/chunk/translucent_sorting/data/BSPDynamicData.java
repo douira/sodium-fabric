@@ -87,9 +87,9 @@ public class BSPDynamicData extends DynamicData {
         sortInitialRecorder.recordNow(quads.length, start);
 
         if (SortTriggering.DEBUG_TRIGGER_STATS) {
-            TimingRecorder.incrementBy(Counter.UNIQUE_TRIGGERS, result.getUniqueTriggers());
+            Counter.UNIQUE_TRIGGERS.incrementBy(result.getUniqueTriggers());
         }
-        TimingRecorder.incrementBy(Counter.QUADS, quads.length);
+        Counter.QUADS.incrementBy(quads.length);
         Counter.BSP_SECTIONS.increment();
 
         // prepare geometry planes for integration into GFNI triggering

@@ -184,10 +184,6 @@ public class TimingRecorder {
         this.events.clear();
     }
 
-    public static void incrementBy(Counter counter, long amount) {
-        counter.incrementBy(amount);
-    }
-
     public static void resetAll() {
         for (var recorder : recorders) {
             recorder.resetAfterWarmup();

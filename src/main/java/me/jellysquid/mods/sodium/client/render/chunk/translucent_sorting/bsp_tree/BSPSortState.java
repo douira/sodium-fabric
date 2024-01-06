@@ -106,13 +106,13 @@ class BSPSortState {
     static int[] compressIndexes(IntArrayList indexes, boolean doSort) {
         if (SortTriggering.DEBUG_COMPRESSION_STATS) {
             Counter.COMPRESSION_CANDIDATES.increment();
-            TimingRecorder.incrementBy(Counter.UNCOMPRESSED_SIZE, indexes.size());
+            Counter.UNCOMPRESSED_SIZE.incrementBy(indexes.size());
         }
 
         // bail on short lists
         if (indexes.size() < INDEX_COMPRESSION_MIN_LENGTH || indexes.size() > 1 << 10) {
             if (SortTriggering.DEBUG_COMPRESSION_STATS) {
-                TimingRecorder.incrementBy(Counter.COMPRESSED_SIZE, indexes.size());
+                Counter.COMPRESSED_SIZE.incrementBy(indexes.size());
             }
             return indexes.toIntArray();
         }
@@ -147,7 +147,7 @@ class BSPSortState {
         int firstIndex = workingList.getInt(0);
         if (firstIndex > 1 << 17) {
             if (SortTriggering.DEBUG_COMPRESSION_STATS) {
-                TimingRecorder.incrementBy(Counter.COMPRESSED_SIZE, indexes.size());
+                Counter.COMPRESSED_SIZE.incrementBy(indexes.size());
             }
             return indexes.toIntArray();
         }
@@ -173,7 +173,7 @@ class BSPSortState {
         // stop if the width is too large (and compression would make no sense)
         if (deltaRangeWidth > 16) {
             if (SortTriggering.DEBUG_COMPRESSION_STATS) {
-                TimingRecorder.incrementBy(Counter.COMPRESSED_SIZE, indexes.size());
+                Counter.COMPRESSED_SIZE.incrementBy(indexes.size());
             }
             return indexes.toIntArray();
         }
@@ -217,7 +217,7 @@ class BSPSortState {
 
         if (SortTriggering.DEBUG_COMPRESSION_STATS) {
             Counter.COMPRESSION_SUCCESS.increment();
-            TimingRecorder.incrementBy(Counter.COMPRESSED_SIZE, size);
+            Counter.COMPRESSED_SIZE.incrementBy(size);
         }
         return compressed;
     }
