@@ -5,7 +5,7 @@ import org.joml.Vector3fc;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import me.jellysquid.mods.sodium.client.render.chunk.translucent_sorting.TQuad;
 import me.jellysquid.mods.sodium.client.render.chunk.translucent_sorting.data.TopoGraphSorting;
-import me.jellysquid.mods.sodium.client.render.chunk.translucent_sorting.bsp_tree.TimingRecorder.Counter;
+import me.jellysquid.mods.sodium.client.render.measurement.Counter;
 import me.jellysquid.mods.sodium.client.util.NativeBuffer;
 import net.caffeinemc.mods.sodium.api.util.NormI8;
 import net.minecraft.util.math.ChunkSectionPos;

@@ -15,8 +15,8 @@ import me.jellysquid.mods.sodium.client.render.chunk.terrain.DefaultTerrainRende
 import me.jellysquid.mods.sodium.client.render.chunk.terrain.TerrainRenderPass;
 import me.jellysquid.mods.sodium.client.render.chunk.translucent_sorting.SortType;
 import me.jellysquid.mods.sodium.client.render.chunk.translucent_sorting.TranslucentGeometryCollector;
-import me.jellysquid.mods.sodium.client.render.chunk.translucent_sorting.bsp_tree.TimingRecorder;
 import me.jellysquid.mods.sodium.client.render.chunk.translucent_sorting.data.TranslucentData;
+import me.jellysquid.mods.sodium.client.render.measurement.TimingRecorder;
 import me.jellysquid.mods.sodium.client.util.task.CancellationToken;
 import me.jellysquid.mods.sodium.client.world.WorldSlice;
 import me.jellysquid.mods.sodium.client.world.cloned.ChunkRenderContext;

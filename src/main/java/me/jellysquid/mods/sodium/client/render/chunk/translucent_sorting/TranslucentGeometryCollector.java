@@ -14,7 +14,6 @@ import me.jellysquid.mods.sodium.client.render.chunk.compile.ChunkBuildOutput;
 import me.jellysquid.mods.sodium.client.render.chunk.compile.pipeline.FluidRenderer;
 import me.jellysquid.mods.sodium.client.render.chunk.data.BuiltSectionMeshParts;
 import me.jellysquid.mods.sodium.client.render.chunk.translucent_sorting.bsp_tree.BSPBuildFailureException;
-import me.jellysquid.mods.sodium.client.render.chunk.translucent_sorting.bsp_tree.TimingRecorder.Counter;
 import me.jellysquid.mods.sodium.client.render.chunk.translucent_sorting.data.AnyOrderData;
 import me.jellysquid.mods.sodium.client.render.chunk.translucent_sorting.data.BSPDynamicData;
 import me.jellysquid.mods.sodium.client.render.chunk.translucent_sorting.data.DynamicData;
@@ -28,6 +27,7 @@ import me.jellysquid.mods.sodium.client.render.chunk.translucent_sorting.data.Tr
 import me.jellysquid.mods.sodium.client.render.chunk.translucent_sorting.trigger.GeometryPlanes;
 import me.jellysquid.mods.sodium.client.render.chunk.translucent_sorting.trigger.SortTriggering;
 import me.jellysquid.mods.sodium.client.render.chunk.vertex.format.ChunkVertexEncoder;
+import me.jellysquid.mods.sodium.client.render.measurement.Counter;
 import me.jellysquid.mods.sodium.client.util.NativeBuffer;
 import net.caffeinemc.mods.sodium.api.util.NormI8;
 import net.minecraft.util.math.ChunkSectionPos;

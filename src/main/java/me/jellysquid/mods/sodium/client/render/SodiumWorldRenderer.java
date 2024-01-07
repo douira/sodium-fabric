@@ -13,6 +13,7 @@ import me.jellysquid.mods.sodium.client.render.chunk.map.ChunkTracker;
 import me.jellysquid.mods.sodium.client.render.chunk.map.ChunkTrackerHolder;
 import me.jellysquid.mods.sodium.client.render.chunk.terrain.DefaultTerrainRenderPasses;
 import me.jellysquid.mods.sodium.client.render.chunk.translucent_sorting.trigger.CameraMovement;
+import me.jellysquid.mods.sodium.client.render.measurement.Measurement;
 import me.jellysquid.mods.sodium.client.render.viewport.Viewport;
 import me.jellysquid.mods.sodium.client.util.NativeBuffer;
 import me.jellysquid.mods.sodium.client.world.WorldRendererExtended;
@@ -153,7 +154,7 @@ public class SodiumWorldRenderer {
 
         this.useEntityCulling = SodiumClientMod.options().performance.useEntityCulling;
 
-        if (this.client.options.getClampedViewDistance() != this.renderDistance) {
+        if (this.client.options.getClampedViewDistance() != this.renderDistance || Measurement.shouldReloadWorld()) {
             this.reload();
         }
 
@@ -197,9 +198,12 @@ public class SodiumWorldRenderer {
         }
 
         if (this.renderSectionManager.needsUpdate()) {
+            Measurement.registerFrame(true);
             profiler.swap("chunk_render_lists");
 
             this.renderSectionManager.update(camera, viewport, frame, spectator);
+        } else {
+            Measurement.registerFrame(false);
         }
 
         profiler.swap("chunk_update");
@@ -254,6 +258,8 @@ public class SodiumWorldRenderer {
             this.renderSectionManager.destroy();
             this.renderSectionManager = null;
         }
+
+        Measurement.reset();
 
         this.renderDistance = this.client.options.getClampedViewDistance();
 

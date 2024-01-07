@@ -1,10 +1,4 @@
-package me.jellysquid.mods.sodium.client.render.chunk.translucent_sorting.bsp_tree;
-
-import java.util.ArrayList;
-import java.util.concurrent.atomic.AtomicLong;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+package me.jellysquid.mods.sodium.client.render.measurement;
 
 import it.unimi.dsi.fastutil.objects.ReferenceArrayList;
 
@@ -48,53 +42,10 @@ import it.unimi.dsi.fastutil.objects.ReferenceArrayList;
  * but don't have an aligned facing because they're just slightly slanted.
  */
 public class TimingRecorder {
-    private static final Logger LOGGER = LogManager.getLogger(TimingRecorder.class);
-
     static record TimedEvent(int size, long ns) {
     }
 
-    public static enum Counter {
-        UNIQUE_TRIGGERS,
-
-        QUADS,
-        BSP_SECTIONS,
-
-        COMPRESSION_CANDIDATES,
-        COMPRESSION_SUCCESS,
-        COMPRESSED_SIZE,
-        UNCOMPRESSED_SIZE,
-
-        HEURISTIC_BOUNDING_BOX,
-        HEURISTIC_OPPOSING_UNALIGNED,
-        HEURISTIC_BSP_OPPOSING_UNALIGNED;
-
-        private final AtomicLong value = new AtomicLong();
-
-        public long getValue() {
-            return this.value.get();
-        }
-
-        public void incrementBy(long amount) {
-            this.value.addAndGet(amount);
-        }
-
-        public void increment() {
-            this.incrementBy(1);
-        }
-
-        public boolean isPositive() {
-            return this.getValue() > 0;
-        }
-
-        public static void resetAll() {
-            for (var counter : values()) {
-                counter.value.set(0);
-            }
-        }
-    }
-
     private static final int WARMUP_COUNT = 500;
-    private static ArrayList<TimingRecorder> recorders = new ArrayList<>();
 
     private ReferenceArrayList<TimedEvent> events = new ReferenceArrayList<>(1000);
     private boolean warmedUp = false;
@@ -109,7 +60,7 @@ public class TimingRecorder {
         this.remainingWarmup = warmupCount;
         this.printEvents = printEvents;
 
-        recorders.add(this);
+        Measurement.registerRecorder(this);
     }
 
     public TimingRecorder(String name, int warmupCount) {
@@ -132,7 +83,7 @@ public class TimingRecorder {
         if (!this.warmedUp) {
             this.remainingWarmup--;
             if (this.remainingWarmup == 0) {
-                LOGGER.info("Warmed up recorder " + this.name);
+                Measurement.LOGGER.info("Warmed up recorder " + this.name);
             }
             return;
         }
@@ -140,7 +91,7 @@ public class TimingRecorder {
         this.events.add(new TimedEvent(size, delta));
 
         if (this.printEvents) {
-            LOGGER.info("Event for " + this.name + ": " + size + " quads, " + delta + "ns " +
+            Measurement.LOGGER.info("Event for " + this.name + ": " + size + " quads, " + delta + "ns " +
                     "(" + (delta / size) + "ns per quad)");
         }
     }
@@ -165,8 +116,8 @@ public class TimingRecorder {
         }
 
         int eventCount = this.events.size();
-        LOGGER.info("Timings for " + this.name + ":");
-        LOGGER.info("min " + minTime +
+        Measurement.LOGGER.info("Timings for " + this.name + ":");
+        Measurement.LOGGER.info("min " + minTime +
                 "ns, max " + maxTime +
                 "ns, avg " + (totalTime / eventCount) +
                 "ns, total " + totalTime +
@@ -178,51 +129,20 @@ public class TimingRecorder {
                 ". " + eventCount + " events.");
 
         if (this.printData) {
-            LOGGER.info(builder.toString());
+            Measurement.LOGGER.info(builder.toString());
         }
     }
 
-    private void resetAfterWarmup() {
+     void resetAfterWarmup() {
         if (this.remainingWarmup <= 0) {
             if (!this.events.isEmpty()) {
                 this.print();
             }
 
             this.warmedUp = true;
-            LOGGER.info("Started recorder " + this.name);
+            Measurement.LOGGER.info("Started recorder " + this.name);
         }
 
         this.events.clear();
-    }
-
-    public static void resetAll() {
-        for (var recorder : recorders) {
-            recorder.resetAfterWarmup();
-        }
-
-        for (var counter : Counter.values()) {
-            LOGGER.info(counter + ": " + counter.getValue());
-        }
-
-        if (Counter.UNIQUE_TRIGGERS.isPositive()
-                && Counter.QUADS.isPositive()
-                && Counter.BSP_SECTIONS.isPositive()) {
-            LOGGER.info("Triggers per quad: " +
-                    ((double) Counter.UNIQUE_TRIGGERS.getValue() / Counter.QUADS.getValue()));
-            LOGGER.info("Triggers per section: " +
-                    ((double) Counter.UNIQUE_TRIGGERS.getValue() / Counter.BSP_SECTIONS.getValue()));
-        }
-        if (Counter.COMPRESSION_CANDIDATES.isPositive()
-                && Counter.COMPRESSION_SUCCESS.isPositive()
-                && Counter.COMPRESSED_SIZE.isPositive()
-                && Counter.UNCOMPRESSED_SIZE.isPositive()) {
-            LOGGER.info("Compressed size ratio: " +
-                    ((double) Counter.COMPRESSED_SIZE.getValue() / Counter.UNCOMPRESSED_SIZE.getValue()));
-            LOGGER.info("Compression success ratio: " +
-                    ((double) Counter.COMPRESSION_SUCCESS.getValue()
-                            / Counter.COMPRESSION_CANDIDATES.getValue()));
-        }
-
-        Counter.resetAll();
     }
 }

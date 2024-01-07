@@ -30,7 +30,6 @@ import me.jellysquid.mods.sodium.client.render.chunk.occlusion.OcclusionCuller;
 import me.jellysquid.mods.sodium.client.render.chunk.region.RenderRegion;
 import me.jellysquid.mods.sodium.client.render.chunk.region.RenderRegionManager;
 import me.jellysquid.mods.sodium.client.render.chunk.terrain.TerrainRenderPass;
-import me.jellysquid.mods.sodium.client.render.chunk.translucent_sorting.bsp_tree.TimingRecorder;
 import me.jellysquid.mods.sodium.client.render.chunk.translucent_sorting.data.NoData;
 import me.jellysquid.mods.sodium.client.render.chunk.translucent_sorting.data.TopoSortDynamicData;
 import me.jellysquid.mods.sodium.client.render.chunk.translucent_sorting.data.TranslucentData;
@@ -122,8 +121,6 @@ public class RenderSectionManager {
         for (var type : ChunkUpdateType.values()) {
             this.taskLists.put(type, new ArrayDeque<>());
         }
-
-        TimingRecorder.resetAll();
     }
 
     public void updateCameraState(Vector3dc cameraPosition, Camera camera) {

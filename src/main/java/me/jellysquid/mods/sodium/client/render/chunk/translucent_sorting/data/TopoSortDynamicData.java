@@ -12,7 +12,7 @@ import me.jellysquid.mods.sodium.client.render.chunk.data.BuiltSectionMeshParts;
 import me.jellysquid.mods.sodium.client.render.chunk.translucent_sorting.TQuad;
 import me.jellysquid.mods.sodium.client.render.chunk.translucent_sorting.trigger.GeometryPlanes;
 import me.jellysquid.mods.sodium.client.render.chunk.translucent_sorting.trigger.SortTriggering;
-import me.jellysquid.mods.sodium.client.render.chunk.translucent_sorting.bsp_tree.TimingRecorder;
+import me.jellysquid.mods.sodium.client.render.measurement.TimingRecorder;
 import me.jellysquid.mods.sodium.client.util.NativeBuffer;
 import net.minecraft.util.math.ChunkSectionPos;
 
