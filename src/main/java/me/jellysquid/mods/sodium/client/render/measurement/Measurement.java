@@ -6,6 +6,13 @@ import org.apache.logging.log4j.Logger;
 import it.unimi.dsi.fastutil.objects.ReferenceArrayList;
 
 public class Measurement {
+    public static final boolean DEBUG_ONLY_TOPO_OR_DISTANCE_SORT = false;
+    public static final boolean DEBUG_SKIP_TOPO_SORT = false;
+    public static final boolean DEBUG_COMPRESSION_STATS = false;
+    public static final boolean DEBUG_TRIGGER_STATS = false;
+    public static final boolean DEBUG_DISABLE_FRUSTUM_CULLING = false;
+    public static final boolean DEBUG_ONLY_RENDER_CURRENT_SECTION = false;
+
     private static final boolean AUTO_RELOAD_WORLD = false;
 
     static final Logger LOGGER = LogManager.getLogger(Measurement.class);

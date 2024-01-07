@@ -8,8 +8,8 @@ import me.jellysquid.mods.sodium.client.render.chunk.data.BuiltSectionMeshParts;
 import me.jellysquid.mods.sodium.client.render.chunk.translucent_sorting.TQuad;
 import me.jellysquid.mods.sodium.client.render.chunk.translucent_sorting.bsp_tree.BSPNode;
 import me.jellysquid.mods.sodium.client.render.chunk.translucent_sorting.bsp_tree.BSPResult;
-import me.jellysquid.mods.sodium.client.render.chunk.translucent_sorting.trigger.SortTriggering;
 import me.jellysquid.mods.sodium.client.render.measurement.Counter;
+import me.jellysquid.mods.sodium.client.render.measurement.Measurement;
 import me.jellysquid.mods.sodium.client.render.measurement.TimingRecorder;
 import me.jellysquid.mods.sodium.client.util.NativeBuffer;
 import net.minecraft.util.math.ChunkSectionPos;
@@ -86,7 +86,7 @@ public class BSPDynamicData extends DynamicData {
         dynamicData.sort(cameraPos.getRelativeCameraPos());
         sortInitialRecorder.recordNow(quads.length, start);
 
-        if (SortTriggering.DEBUG_TRIGGER_STATS) {
+        if (Measurement.DEBUG_TRIGGER_STATS) {
             Counter.UNIQUE_TRIGGERS.incrementBy(result.getUniqueTriggers());
         }
         Counter.QUADS.incrementBy(quads.length);

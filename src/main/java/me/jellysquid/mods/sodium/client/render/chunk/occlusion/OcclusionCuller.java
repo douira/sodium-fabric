@@ -2,7 +2,7 @@ package me.jellysquid.mods.sodium.client.render.chunk.occlusion;
 
 import it.unimi.dsi.fastutil.longs.Long2ReferenceMap;
 import me.jellysquid.mods.sodium.client.render.chunk.RenderSection;
-import me.jellysquid.mods.sodium.client.render.chunk.translucent_sorting.trigger.SortTriggering;
+import me.jellysquid.mods.sodium.client.render.measurement.Measurement;
 import me.jellysquid.mods.sodium.client.render.viewport.CameraTransform;
 import me.jellysquid.mods.sodium.client.util.collections.DoubleBufferedQueue;
 import me.jellysquid.mods.sodium.client.util.collections.ReadQueue;
@@ -37,7 +37,7 @@ public class OcclusionCuller {
 
         this.init(visitor, queues.write(), viewport, searchDistance, useOcclusionCulling, frame);
 
-        if (SortTriggering.DEBUG_ONLY_RENDER_CURRENT_SECTION) {
+        if (Measurement.DEBUG_ONLY_RENDER_CURRENT_SECTION) {
             return;
         }
         while (queues.flip()) {
@@ -60,7 +60,7 @@ public class OcclusionCuller {
                 continue;
             }
 
-            if (isOutsideFrustum(viewport, section) && !SortTriggering.DEBUG_DISABLE_FRUSTUM_CULLING) {
+            if (isOutsideFrustum(viewport, section) && !Measurement.DEBUG_DISABLE_FRUSTUM_CULLING) {
                 continue;
             }
 

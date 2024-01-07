@@ -28,6 +28,7 @@ import me.jellysquid.mods.sodium.client.render.chunk.translucent_sorting.trigger
 import me.jellysquid.mods.sodium.client.render.chunk.translucent_sorting.trigger.SortTriggering;
 import me.jellysquid.mods.sodium.client.render.chunk.vertex.format.ChunkVertexEncoder;
 import me.jellysquid.mods.sodium.client.render.measurement.Counter;
+import me.jellysquid.mods.sodium.client.render.measurement.Measurement;
 import me.jellysquid.mods.sodium.client.util.NativeBuffer;
 import net.caffeinemc.mods.sodium.api.util.NormI8;
 import net.minecraft.util.math.ChunkSectionPos;
@@ -487,7 +488,7 @@ public class TranslucentGeometryCollector {
         }
 
         if (this.sortType == SortType.DYNAMIC) {
-            if (!SortTriggering.DEBUG_ONLY_TOPO_OR_DISTANCE_SORT) {
+            if (!Measurement.DEBUG_ONLY_TOPO_OR_DISTANCE_SORT) {
                 try {
                     return BSPDynamicData.fromMesh(
                         translucentMesh, cameraPos, this.quads, this.sectionPos,

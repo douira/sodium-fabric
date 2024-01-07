@@ -11,7 +11,7 @@ import me.jellysquid.mods.sodium.client.gl.util.VertexRange;
 import me.jellysquid.mods.sodium.client.render.chunk.data.BuiltSectionMeshParts;
 import me.jellysquid.mods.sodium.client.render.chunk.translucent_sorting.TQuad;
 import me.jellysquid.mods.sodium.client.render.chunk.translucent_sorting.trigger.GeometryPlanes;
-import me.jellysquid.mods.sodium.client.render.chunk.translucent_sorting.trigger.SortTriggering;
+import me.jellysquid.mods.sodium.client.render.measurement.Measurement;
 import me.jellysquid.mods.sodium.client.render.measurement.TimingRecorder;
 import me.jellysquid.mods.sodium.client.util.NativeBuffer;
 import net.minecraft.util.math.ChunkSectionPos;
@@ -36,8 +36,8 @@ public class TopoSortDynamicData extends DynamicData {
     private static final TimingRecorder distanceSortRecorder = new TimingRecorder("Distance sort");
 
     private final TQuad[] quads;
-    private boolean GFNITrigger = !SortTriggering.DEBUG_SKIP_TOPO_SORT;
-    private boolean directTrigger = SortTriggering.DEBUG_SKIP_TOPO_SORT;
+    private boolean GFNITrigger = !Measurement.DEBUG_SKIP_TOPO_SORT;
+    private boolean directTrigger = Measurement.DEBUG_SKIP_TOPO_SORT;
     private boolean turnGFNITriggerOff = false;
     private boolean turnDirectTriggerOn = false;
     private boolean turnDirectTriggerOff = false;
