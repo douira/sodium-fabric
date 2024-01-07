@@ -51,6 +51,7 @@ public class SodiumWorldRenderer {
     private boolean useEntityCulling;
 
     private RenderSectionManager renderSectionManager;
+    public final Measurement measurement = new Measurement();
 
     /**
      * @return The SodiumWorldRenderer based on the current dimension
@@ -154,7 +155,7 @@ public class SodiumWorldRenderer {
 
         this.useEntityCulling = SodiumClientMod.options().performance.useEntityCulling;
 
-        if (this.client.options.getClampedViewDistance() != this.renderDistance || Measurement.shouldReloadWorld()) {
+        if (this.client.options.getClampedViewDistance() != this.renderDistance || this.measurement.shouldReloadWorld()) {
             this.reload();
         }
 
@@ -198,12 +199,12 @@ public class SodiumWorldRenderer {
         }
 
         if (this.renderSectionManager.needsUpdate()) {
-            Measurement.registerFrame(true);
+            this.measurement.registerFrame(true);
             profiler.swap("chunk_render_lists");
 
             this.renderSectionManager.update(camera, viewport, frame, spectator);
         } else {
-            Measurement.registerFrame(false);
+            this.measurement.registerFrame(false);
         }
 
         profiler.swap("chunk_update");
@@ -259,7 +260,7 @@ public class SodiumWorldRenderer {
             this.renderSectionManager = null;
         }
 
-        Measurement.reset();
+        this.measurement.reset();
 
         this.renderDistance = this.client.options.getClampedViewDistance();
 
