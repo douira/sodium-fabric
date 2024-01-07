@@ -53,6 +53,8 @@ public class ChunkBuilderMeshingTask extends ChunkBuilderTask<ChunkBuildOutput> 
     }
 
     private static final TimingRecorder meshingRecorder = new TimingRecorder("Meshing");
+    private static final TimingRecorder opaqueMeshingRecorder = new TimingRecorder("Opaque-only Meshing");
+    private static final TimingRecorder translucentMeshingRecorder = new TimingRecorder("Translucent-containing Meshing");
 
     @Override
     public ChunkBuildOutput execute(ChunkBuildContext buildContext, CancellationToken cancellationToken) {
@@ -155,6 +157,7 @@ public class ChunkBuilderMeshingTask extends ChunkBuilderTask<ChunkBuildOutput> 
         Map<TerrainRenderPass, BuiltSectionMeshParts> meshes = new Reference2ReferenceOpenHashMap<>();
 
         int totalQuadCount = 0;
+        int translucentQuadCount = 0;
         for (TerrainRenderPass pass : DefaultTerrainRenderPasses.ALL) {
             // consolidate all translucent geometry into UNASSIGNED so that it's rendered
             // all together if it needs to share an index buffer between the directions
@@ -165,10 +168,15 @@ public class ChunkBuilderMeshingTask extends ChunkBuilderTask<ChunkBuildOutput> 
                 meshes.put(pass, mesh);
                 renderData.addRenderPass(pass);
 
+                int localQuadCount = 0;
                 for (var range : mesh.getVertexRanges()) {
                     if (range != null) {
-                        totalQuadCount += TranslucentData.vertexCountToQuadCount(range.vertexCount());
+                        localQuadCount += TranslucentData.vertexCountToQuadCount(range.vertexCount());
                     }
+                }
+                totalQuadCount += localQuadCount;
+                if (isTranslucent) {
+                    translucentQuadCount += localQuadCount;
                 }
             }
         }
@@ -187,7 +195,12 @@ public class ChunkBuilderMeshingTask extends ChunkBuilderTask<ChunkBuildOutput> 
         renderData.setOcclusionData(occluder.build());
 
         var output = new ChunkBuildOutput(this.render, this.submitTime, translucentData, renderData.build(), meshes);
-        meshingRecorder.recordNow(totalQuadCount, start);
+        var end = System.nanoTime();
+        meshingRecorder.recordDelta(totalQuadCount, start, end);
+        opaqueMeshingRecorder.recordDelta(totalQuadCount - translucentQuadCount, start, end);
+        if (translucentQuadCount > 0) {
+            translucentMeshingRecorder.recordDelta(translucentQuadCount, start, end);
+        }
         return output;
     }
 
