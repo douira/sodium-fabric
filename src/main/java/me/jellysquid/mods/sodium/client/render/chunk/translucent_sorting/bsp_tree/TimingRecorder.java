@@ -3,6 +3,9 @@ package me.jellysquid.mods.sodium.client.render.chunk.translucent_sorting.bsp_tr
 import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import it.unimi.dsi.fastutil.objects.ReferenceArrayList;
 
 /**
@@ -45,6 +48,8 @@ import it.unimi.dsi.fastutil.objects.ReferenceArrayList;
  * but don't have an aligned facing because they're just slightly slanted.
  */
 public class TimingRecorder {
+    private static final Logger LOGGER = LogManager.getLogger(TimingRecorder.class);
+
     static record TimedEvent(int size, long ns) {
     }
 
@@ -127,7 +132,7 @@ public class TimingRecorder {
         if (!this.warmedUp) {
             this.remainingWarmup--;
             if (this.remainingWarmup == 0) {
-                System.out.println("Warmed up recorder " + this.name);
+                LOGGER.info("Warmed up recorder " + this.name);
             }
             return;
         }
@@ -135,7 +140,7 @@ public class TimingRecorder {
         this.events.add(new TimedEvent(size, delta));
 
         if (this.printEvents) {
-            System.out.println("Event for " + this.name + ": " + size + " quads, " + delta + "ns " +
+            LOGGER.info("Event for " + this.name + ": " + size + " quads, " + delta + "ns " +
                     "(" + (delta / size) + "ns per quad)");
         }
     }
@@ -160,18 +165,20 @@ public class TimingRecorder {
         }
 
         int eventCount = this.events.size();
-        System.out.println("Timings for " + this.name + ":");
-        System.out.println("min " + minTime +
+        LOGGER.info("Timings for " + this.name + ":");
+        LOGGER.info("min " + minTime +
                 "ns, max " + maxTime +
                 "ns, avg " + (totalTime / eventCount) +
-                "ns. Total size " + totalSize +
+                "ns, total " + totalTime +
+                "ns (" + (totalTime / 1000000) +
+                "ms). Total size " + totalSize +
                 ", avg size " + (totalSize / eventCount) +
                 ". Avg time per quad " + (totalTime / totalSize) +
                 "ns. Avg quads per event " + (totalSize / eventCount) +
                 ". " + eventCount + " events.");
 
         if (this.printData) {
-            System.out.println(builder.toString());
+            LOGGER.info(builder.toString());
         }
     }
 
@@ -182,7 +189,7 @@ public class TimingRecorder {
             }
 
             this.warmedUp = true;
-            System.out.println("Started recorder " + this.name);
+            LOGGER.info("Started recorder " + this.name);
         }
 
         this.events.clear();
@@ -194,24 +201,24 @@ public class TimingRecorder {
         }
 
         for (var counter : Counter.values()) {
-            System.out.println(counter + ": " + counter.getValue());
+            LOGGER.info(counter + ": " + counter.getValue());
         }
 
         if (Counter.UNIQUE_TRIGGERS.isPositive()
                 && Counter.QUADS.isPositive()
                 && Counter.BSP_SECTIONS.isPositive()) {
-            System.out.println("Triggers per quad: " +
+            LOGGER.info("Triggers per quad: " +
                     ((double) Counter.UNIQUE_TRIGGERS.getValue() / Counter.QUADS.getValue()));
-            System.out.println("Triggers per section: " +
-                    (Counter.UNIQUE_TRIGGERS.getValue() / Counter.BSP_SECTIONS.getValue()));
+            LOGGER.info("Triggers per section: " +
+                    ((double) Counter.UNIQUE_TRIGGERS.getValue() / Counter.BSP_SECTIONS.getValue()));
         }
         if (Counter.COMPRESSION_CANDIDATES.isPositive()
                 && Counter.COMPRESSION_SUCCESS.isPositive()
                 && Counter.COMPRESSED_SIZE.isPositive()
                 && Counter.UNCOMPRESSED_SIZE.isPositive()) {
-            System.out.println("Compressed size ratio: " +
+            LOGGER.info("Compressed size ratio: " +
                     ((double) Counter.COMPRESSED_SIZE.getValue() / Counter.UNCOMPRESSED_SIZE.getValue()));
-            System.out.println("Compression success ratio: " +
+            LOGGER.info("Compression success ratio: " +
                     ((double) Counter.COMPRESSION_SUCCESS.getValue()
                             / Counter.COMPRESSION_CANDIDATES.getValue()));
         }
