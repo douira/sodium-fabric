@@ -3,16 +3,21 @@ package me.jellysquid.mods.sodium.client.render.measurement;
 import java.util.concurrent.atomic.AtomicLong;
 
 public enum Counter {
-    UNIQUE_TRIGGERS,
+    // misc
+    UPLOADS_WITHOUT_GRAPH_UPDATE_REQUIRED,
 
+    // general counts
+    UNIQUE_TRIGGERS,
     QUADS,
     BSP_SECTIONS,
 
+    // compression
     COMPRESSION_CANDIDATES,
     COMPRESSION_SUCCESS,
     COMPRESSED_SIZE,
     UNCOMPRESSED_SIZE,
 
+    // heuristic usage
     HEURISTIC_BOUNDING_BOX,
     HEURISTIC_OPPOSING_UNALIGNED,
     HEURISTIC_BSP_OPPOSING_UNALIGNED;

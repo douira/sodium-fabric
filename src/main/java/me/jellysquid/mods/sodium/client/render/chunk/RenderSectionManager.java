@@ -36,6 +36,7 @@ import me.jellysquid.mods.sodium.client.render.chunk.translucent_sorting.data.Tr
 import me.jellysquid.mods.sodium.client.render.chunk.translucent_sorting.trigger.CameraMovement;
 import me.jellysquid.mods.sodium.client.render.chunk.translucent_sorting.trigger.SortTriggering;
 import me.jellysquid.mods.sodium.client.render.chunk.vertex.format.ChunkMeshFormats;
+import me.jellysquid.mods.sodium.client.render.measurement.Counter;
 import me.jellysquid.mods.sodium.client.render.texture.SpriteUtil;
 import me.jellysquid.mods.sodium.client.render.util.RenderAsserts;
 import me.jellysquid.mods.sodium.client.render.viewport.CameraTransform;
@@ -300,7 +301,11 @@ public class RenderSectionManager {
         // (sort results never change the graph)
         // generally there's no sort results without a camera movement, which would also trigger
         // a graph update, but it can sometimes happen because of async task execution
-        this.needsGraphUpdate = this.needsGraphUpdate || this.processChunkBuildResults(results);
+        boolean touchedSectionInfo = this.processChunkBuildResults(results);
+        if (!touchedSectionInfo) {
+            Counter.UPLOADS_WITHOUT_GRAPH_UPDATE_REQUIRED.increment();
+        }
+        this.needsGraphUpdate = this.needsGraphUpdate || touchedSectionInfo;
 
         for (var result : results) {
             result.deleteAfterUploadSafe();
