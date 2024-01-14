@@ -18,6 +18,7 @@ import me.jellysquid.mods.sodium.client.render.chunk.translucent_sorting.data.An
 import me.jellysquid.mods.sodium.client.render.chunk.translucent_sorting.data.BSPDynamicData;
 import me.jellysquid.mods.sodium.client.render.chunk.translucent_sorting.data.DynamicData;
 import me.jellysquid.mods.sodium.client.render.chunk.translucent_sorting.data.CombinedCameraPos;
+import me.jellysquid.mods.sodium.client.render.chunk.translucent_sorting.data.DynamicData;
 import me.jellysquid.mods.sodium.client.render.chunk.translucent_sorting.data.NoData;
 import me.jellysquid.mods.sodium.client.render.chunk.translucent_sorting.data.PresentTranslucentData;
 import me.jellysquid.mods.sodium.client.render.chunk.translucent_sorting.data.StaticNormalRelativeData;
@@ -72,7 +73,10 @@ public class TranslucentGeometryCollector {
     private int alignedFacingBitmap = 0;
 
     // AABB of the geometry
-    private float[] extents = new float[ModelQuadFacing.DIRECTIONS];
+    private float[] extents = new float[] {
+            Float.NEGATIVE_INFINITY, Float.NEGATIVE_INFINITY, Float.NEGATIVE_INFINITY,
+            Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY
+    };
 
     // true if one of the extents has more than one plane
     private boolean alignedExtentsMultiple = false;
@@ -194,8 +198,6 @@ public class TranslucentGeometryCollector {
         if (quadList == null) {
             quadList = new ReferenceArrayList<>();
             this.quadLists[direction] = quadList;
-        } else if (facing.isAligned()) {
-            this.alignedExtentsMultiple = true;
         }
 
         if (facing.isAligned()) {
@@ -215,7 +217,15 @@ public class TranslucentGeometryCollector {
 
             var extreme = this.alignedExtremes[direction];
             var distance = quad.getDotProduct();
-            if (facing.getSign() > 1) {
+
+            // check if this is a new dot product for this distance
+            var existingExtreme = this.alignedExtremes[direction];
+            if (!this.alignedExtentsMultiple && !Float.isInfinite(existingExtreme) && existingExtreme != distance) {
+                this.alignedExtentsMultiple = true;
+            }
+
+            // update the aligned extremes (which are the direction dependent dot products)
+            if (facing.getSign() > 0) {
                 this.alignedExtremes[direction] = Math.max(extreme, distance);
             } else {
                 this.alignedExtremes[direction] = Math.min(extreme, distance);
