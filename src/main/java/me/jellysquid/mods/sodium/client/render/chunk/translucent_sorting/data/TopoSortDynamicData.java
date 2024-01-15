@@ -201,7 +201,7 @@ public class TopoSortDynamicData extends DynamicData {
      * Sorts the given quads by descending center distance to the camera and writes
      * the resulting order to the given index buffer.
      */
-    private static void distanceSortDirect(IntBuffer indexBuffer, TQuad[] quads, Vector3fc cameraPos) {
+    static void distanceSortDirect(IntBuffer indexBuffer, TQuad[] quads, Vector3fc cameraPos) {
         if (quads.length <= 1) {
             TranslucentData.writeQuadVertexIndexes(indexBuffer, 0);
         } else if (RadixSort.useRadixSort(quads.length)) {

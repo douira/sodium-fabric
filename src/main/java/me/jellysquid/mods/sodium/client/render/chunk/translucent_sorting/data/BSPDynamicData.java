@@ -24,6 +24,7 @@ public class BSPDynamicData extends DynamicData {
     // /tp ~ ~-100 ~
     private static final TimingRecorder sortInitialRecorder = new TimingRecorder("BSP sort initial");
     private static final TimingRecorder sortTriggerRecorder = new TimingRecorder("BSP sort trigger");
+    private static final TimingRecorder directSortComparisonRecorder = new TimingRecorder("BSP direct sort comparison");
     private static final TimingRecorder buildRecorder = new TimingRecorder("BSP build");
     private static final TimingRecorder partialUpdateRecorder = new TimingRecorder("BSP partial update", 10, true);
 
@@ -85,6 +86,11 @@ public class BSPDynamicData extends DynamicData {
         start = System.nanoTime();
         dynamicData.sort(cameraPos.getRelativeCameraPos());
         sortInitialRecorder.recordNow(quads.length, start);
+        if (Measurement.DEBUG_BSP_DIRECT_SORT_COMPARISON) {
+            start = System.nanoTime();
+            TopoSortDynamicData.distanceSortDirect(dynamicData.getBuffer().getDirectBuffer().asIntBuffer(), quads, cameraPos.getRelativeCameraPos());
+            directSortComparisonRecorder.recordNow(quads.length, start);
+        }
 
         if (Measurement.DEBUG_TRIGGER_STATS) {
             Counter.UNIQUE_TRIGGERS.incrementBy(result.getUniqueTriggers());
