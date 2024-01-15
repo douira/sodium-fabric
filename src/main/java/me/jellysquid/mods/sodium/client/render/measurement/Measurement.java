@@ -45,8 +45,13 @@ import me.jellysquid.mods.sodium.client.render.SodiumWorldRenderer;
  * This happens because fluid render products quads that have an aligned normal
  * but don't have an aligned facing because they're just slightly slanted.
  * 
- * Distance sorting speeds on forzen ocean ice test with auto reload
- * Arrays.sort with long packing: 51ns per quad avg after 20 epochs
+ * Distance sorting speeds on frozen ocean ice test with auto reload
+ * Arrays.sort with long packing: 59ns per quad avg after 50 epochs
+ * merge and radix sort: 40ns per quad avg after 50 epochs
+ * 
+ * Distance vs BSP sorting speed (tests distance sort when BSP sorting):
+ * after 50 epochs, 32 rd, 15 threads, 547 translucent quads per section avg
+ * BSP sorting: 23ns per quad, distance sorting: 38ns per quad
  */
 public class Measurement {
     public static final boolean DEBUG_ONLY_TOPO_OR_DISTANCE_SORT = false;
