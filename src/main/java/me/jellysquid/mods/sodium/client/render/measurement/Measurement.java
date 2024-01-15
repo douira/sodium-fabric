@@ -55,6 +55,7 @@ public class Measurement {
     public static final boolean DEBUG_TRIGGER_STATS = false;
     public static final boolean DEBUG_DISABLE_FRUSTUM_CULLING = false;
     public static final boolean DEBUG_ONLY_RENDER_CURRENT_SECTION = false;
+    public static final boolean DEBUG_BSP_DIRECT_SORT_COMPARISON = false;
 
     private static final boolean AUTO_RELOAD_WORLD = true;
     private static final boolean ACCUMULATE_MEASUREMENTS = true;
