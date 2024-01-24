@@ -3,6 +3,7 @@ package me.jellysquid.mods.sodium.client.render.chunk.translucent_sorting.bsp_tr
 import org.joml.Vector3fc;
 
 import it.unimi.dsi.fastutil.ints.IntArrayList;
+import me.jellysquid.mods.sodium.client.model.quad.properties.ModelQuadFacing;
 import me.jellysquid.mods.sodium.client.render.chunk.translucent_sorting.TQuad;
 import me.jellysquid.mods.sodium.client.render.chunk.translucent_sorting.data.TopoGraphSorting;
 import me.jellysquid.mods.sodium.client.util.NativeBuffer;
@@ -105,6 +106,98 @@ public abstract class BSPNode {
 
             if (doubleLeafPossible(quadA, quadB)) {
                 return new LeafDoubleBSPNode(quadIndexA, quadIndexB);
+            }
+        }
+
+        // check for convex box
+        if (indexes.size() <= 6) {
+            float[] extents = new float[] {
+                    Float.NEGATIVE_INFINITY, Float.NEGATIVE_INFINITY, Float.NEGATIVE_INFINITY,
+                    Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY };
+            float[] directionDistances = new float[]{-1, -1, -1, -1, -1, -1};
+            boolean isBox = true;
+            for (int i = 0; i < indexes.size(); i++) {
+                var quad = workspace.quads[indexes.getInt(i)];
+                var facing = quad.getFacing();
+                if (facing == ModelQuadFacing.UNASSIGNED) {
+                    isBox = false;
+                    break;
+                }
+
+                var quadExtents = quad.getExtents();
+                for (int j = 0; j < ModelQuadFacing.DIRECTIONS; j++) {
+                    extents[j] = j < 3
+                            ? Math.max(extents[j], quadExtents[j])
+                            : Math.min(extents[j], quadExtents[j]);
+                }
+
+                var direction = facing.ordinal();
+                if (directionDistances[direction] != -1) {
+                    isBox = false;
+                    break;
+                }
+                directionDistances[direction] = quadExtents[direction];
+            }
+
+            if (isBox) {
+                // is a convex outfacing box if the direction distances match the box extents
+                boolean isConvexBox = true;
+                for (int i = 0; i < ModelQuadFacing.DIRECTIONS; i++) {
+                    if (directionDistances[i] != -1 && directionDistances[i] != extents[i]) {
+                        isConvexBox = false;
+                        break;
+                    }
+                }
+
+                if (isConvexBox) {
+                    return new LeafMultiBSPNode(indexes.toIntArray());
+                }
+            }
+        }
+
+        // check for convex box
+        if (indexes.size() <= 6) {
+            float[] extents = new float[] {
+                    Float.NEGATIVE_INFINITY, Float.NEGATIVE_INFINITY, Float.NEGATIVE_INFINITY,
+                    Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY };
+            float[] directionDistances = new float[]{-1, -1, -1, -1, -1, -1};
+            boolean isBox = true;
+            for (int i = 0; i < indexes.size(); i++) {
+                var quad = workspace.quads[indexes.getInt(i)];
+                var facing = quad.getFacing();
+                if (facing == ModelQuadFacing.UNASSIGNED) {
+                    isBox = false;
+                    break;
+                }
+
+                var quadExtents = quad.getExtents();
+                for (int j = 0; j < ModelQuadFacing.DIRECTIONS; j++) {
+                    extents[j] = j < 3
+                            ? Math.max(extents[j], quadExtents[j])
+                            : Math.min(extents[j], quadExtents[j]);
+                }
+
+                var direction = facing.ordinal();
+                if (directionDistances[direction] != -1) {
+                    isBox = false;
+                    break;
+                }
+                directionDistances[direction] = quadExtents[direction];
+            }
+
+            if (isBox) {
+                // is a convex outfacing box if the direction distances match the box extents
+                boolean isConvexBox = true;
+                for (int i = 0; i < ModelQuadFacing.DIRECTIONS; i++) {
+                    if (directionDistances[i] != -1 && directionDistances[i] != extents[i]) {
+                        isConvexBox = false;
+                        break;
+                    }
+                }
+
+                if (isConvexBox) {
+                    return new LeafMultiBSPNode(indexes.toIntArray());
+                }
             }
         }
 
