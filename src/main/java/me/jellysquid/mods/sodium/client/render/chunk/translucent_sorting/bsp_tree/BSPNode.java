@@ -108,6 +108,50 @@ public abstract class BSPNode {
             }
         }
 
+        // test for all quads being coplanar aligned
+        float[] axisDistances = new float[] {
+                Float.NEGATIVE_INFINITY, Float.NEGATIVE_INFINITY, Float.NEGATIVE_INFINITY };
+        boolean first = true;
+        int candidates = 3;
+        for (int i = 1; i < indexes.size(); i++) {
+            var quadIndex = indexes.getInt(i);
+            var extents = workspace.quads[quadIndex].extents();
+
+            for (int axis = 0; axis < 3; axis++) {
+                var extentA = extents[axis];
+                var extentB = extents[axis + 3];
+                float sharedDistance = axisDistances[axis];
+                if (extentA == extentB) {
+                    if (first) {
+                        axisDistances[axis] = extentA;
+                    } else {
+                        if (sharedDistance != Float.NEGATIVE_INFINITY && sharedDistance != extentA) {
+                            axisDistances[axis] = Float.NEGATIVE_INFINITY;
+                            candidates--;
+                        }
+                    }
+                } else if (sharedDistance != Float.NEGATIVE_INFINITY) {
+                    axisDistances[axis] = Float.NEGATIVE_INFINITY;
+                    candidates--;
+                }
+            }
+
+            if (candidates == 0) {
+                break;
+            }
+
+            first = false;
+        }
+
+        if (candidates > 0) {
+            for (int axis = 0; axis < 3; axis++) {
+                if (axisDistances[axis] != Float.NEGATIVE_INFINITY) {
+                    System.out.println(indexes.size() + " quads are coplanar aligned on axis " + axis);
+                    return new LeafMultiBSPNode(BSPSortState.compressIndexes(indexes));
+                }
+            }
+        }
+
         return InnerPartitionBSPNode.build(workspace, indexes, depth, oldNode);
     }
 }
