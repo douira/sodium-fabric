@@ -57,7 +57,7 @@ public class OcclusionCuller {
             boolean visible = isSectionVisible(section, viewport, searchDistance);
             visitor.visit(section, visible);
 
-            if (!visible && !Measurement.DEBUG_DISABLE_FRUSTUM_CULLING) {
+            if (!visible) {
                 continue;
             }
 
@@ -84,7 +84,7 @@ public class OcclusionCuller {
     }
 
     private static boolean isSectionVisible(RenderSection section, Viewport viewport, float maxDistance) {
-        return isWithinRenderDistance(viewport.getTransform(), section, maxDistance) && isWithinFrustum(viewport, section);
+        return isWithinRenderDistance(viewport.getTransform(), section, maxDistance) && (isWithinFrustum(viewport, section) || Measurement.DEBUG_DISABLE_FRUSTUM_CULLING);
     }
 
     private static void visitNeighbors(final WriteQueue<RenderSection> queue, RenderSection section, int outgoing, int frame) {
