@@ -69,4 +69,62 @@ public class BSPDynamicData extends DynamicData {
 
         return dynamicData;
     }
+
+    /**
+     * Calculates the offset to apply to each old quad to map it to where it is in
+     * the new quad array. However these values are stored in the positions of the
+     * new quads that they are mapped to, so that in the partitioning algorithm they
+     * can be evaluated. Only additions, removals and changes of quads are tracked.
+     * Changes in order are not fully taken advantage of since they're modelled as a
+     * removal and an addition. (only half of such a reordering is tracked)
+     */
+    private static int[] computeQuadMatchOffsets(float[][] oldExtents, float[][] newExtents) {
+        final int LOOKAHEAD = 10;
+        var quadMatchOffsets = new int[newExtents.length];
+
+        Arrays.fill(quadMatchOffsets, Integer.MAX_VALUE);
+
+        // two indexes iterate the two lists of quads and look for matches within a
+        // certain limit
+        int oldBaseIndex = 0;
+        int newBaseIndex = 0;
+        while (oldBaseIndex < oldExtents.length && newBaseIndex < newExtents.length) {
+            // if there's no offset for this old quad yet
+            if (quadMatchOffsets[oldBaseIndex] == Integer.MAX_VALUE) {
+                // look for a match within a certain limit
+                var oldSearchIndex = oldBaseIndex;
+                var newSearchIndex = newBaseIndex;
+                for (int i = 0; i < LOOKAHEAD && oldSearchIndex < oldExtents.length
+                        && newSearchIndex < newExtents.length; i++, oldSearchIndex++, newSearchIndex++) {
+                    // check for cross matches: match current search position of the one with the
+                    // base positon of the other in both directions.
+
+                    if (TQuad.extentsEqual(oldExtents[newBaseIndex], newExtents[oldSearchIndex])) {
+                        // found a match of the base new quad with the old search quad.
+                        // Advance the base indexes to be at the two matches and write the offset with
+                        // which to map the old quad to its match in the new quad array to the position
+                        // of the new quad.
+                        oldBaseIndex = oldSearchIndex;
+                        quadMatchOffsets[newBaseIndex] = newBaseIndex - oldBaseIndex;
+                        // new base index stays the same
+                        break;
+                    }
+
+                    // if this isn't the case where the search index hasnt' advanced yet, check for
+                    // the other match direction too
+                    if (i > 0 && TQuad.extentsEqual(oldExtents[oldBaseIndex], newExtents[newSearchIndex])) {
+                        newBaseIndex = newSearchIndex;
+                        quadMatchOffsets[newBaseIndex] = newBaseIndex - oldBaseIndex;
+                        break;
+                    }
+                }
+            }
+
+            // increment both to look for the next match
+            oldBaseIndex++;
+            newBaseIndex++;
+        }
+
+        return quadMatchOffsets;
+    }
 }
