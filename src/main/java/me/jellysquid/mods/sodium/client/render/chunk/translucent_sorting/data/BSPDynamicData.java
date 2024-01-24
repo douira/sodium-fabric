@@ -9,6 +9,7 @@ import me.jellysquid.mods.sodium.client.render.chunk.translucent_sorting.TQuad;
 import me.jellysquid.mods.sodium.client.render.chunk.translucent_sorting.bsp_tree.BSPNode;
 import me.jellysquid.mods.sodium.client.render.chunk.translucent_sorting.bsp_tree.BSPResult;
 import me.jellysquid.mods.sodium.client.render.measurement.Counter;
+import me.jellysquid.mods.sodium.client.render.measurement.HeuristicType;
 import me.jellysquid.mods.sodium.client.render.measurement.Measurement;
 import me.jellysquid.mods.sodium.client.render.measurement.TimingRecorder;
 import me.jellysquid.mods.sodium.client.util.NativeBuffer;
@@ -38,6 +39,7 @@ public class BSPDynamicData extends DynamicData {
         super(sectionPos, buffer, range, result, cameraPos);
         this.rootNode = result.getRootNode();
         this.generation = generation;
+        this.heuristicType = HeuristicType.BSP;
     }
 
     @Override

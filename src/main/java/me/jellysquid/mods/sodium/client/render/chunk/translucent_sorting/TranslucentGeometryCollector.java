@@ -28,6 +28,7 @@ import me.jellysquid.mods.sodium.client.render.chunk.translucent_sorting.trigger
 import me.jellysquid.mods.sodium.client.render.chunk.translucent_sorting.trigger.SortTriggering;
 import me.jellysquid.mods.sodium.client.render.chunk.vertex.format.ChunkVertexEncoder;
 import me.jellysquid.mods.sodium.client.render.measurement.Counter;
+import me.jellysquid.mods.sodium.client.render.measurement.HeuristicType;
 import me.jellysquid.mods.sodium.client.render.measurement.Measurement;
 import me.jellysquid.mods.sodium.client.util.NativeBuffer;
 import net.caffeinemc.mods.sodium.api.util.NormI8;
@@ -104,6 +105,8 @@ public class TranslucentGeometryCollector {
 
     private boolean quadHashPresent = false;
     private int quadHash = 0;
+
+    public HeuristicType heuristicType;
 
     public TranslucentGeometryCollector(ChunkSectionPos sectionPos) {
         this.sectionPos = sectionPos;
@@ -367,6 +370,7 @@ public class TranslucentGeometryCollector {
 
         // special case A
         if (sortBehavior == SortBehavior.OFF || planeCount <= 1) {
+            this.heuristicType = HeuristicType.EMPTY_OR_SINGLE_PLANE;
             return SortType.NONE;
         }
 
@@ -380,6 +384,7 @@ public class TranslucentGeometryCollector {
             // each only have one distance, there is no way to see through one face to the
             // other.
             if (planeCount == 2 && opposingAlignedNormals) {
+                this.heuristicType = HeuristicType.OPPOSING_ALIGNED;
                 return SortType.NONE;
             }
 
@@ -402,6 +407,7 @@ public class TranslucentGeometryCollector {
                 }
                 if (passesBoundingBoxTest) {
                     Counter.HEURISTIC_BOUNDING_BOX.increment();
+                    this.heuristicType = HeuristicType.ALIGNED_TO_BOUNDING_BOX;
                     return SortType.NONE;
                 }
             }
@@ -411,6 +417,7 @@ public class TranslucentGeometryCollector {
             // is necessary. Without static sorting, the geometry to trigger on could be
             // reduced but this isn't done here as we assume static sorting is possible.
             if (opposingAlignedNormals || alignedNormalCount == 1) {
+                this.heuristicType = HeuristicType.SNR_ALIGNED;
                 return SortType.STATIC_NORMAL_RELATIVE;
             }
         } else if (alignedNormalCount == 0) {
@@ -418,6 +425,7 @@ public class TranslucentGeometryCollector {
             if (unalignedNormalCount == 1
                     || unalignedNormalCount == 2 && NormI8.isOpposite(this.unalignedANormal, this.unalignedBNormal)) {
                 Counter.HEURISTIC_OPPOSING_UNALIGNED.increment();
+                this.heuristicType = HeuristicType.SNR_UNALIGNED;
                 return SortType.STATIC_NORMAL_RELATIVE;
             }
         } else if (planeCount == 2) { // implies normalCount == 2
@@ -425,6 +433,7 @@ public class TranslucentGeometryCollector {
             int alignedDirection = Integer.numberOfTrailingZeros(this.alignedFacingBitmap);
             if (NormI8.isOpposite(this.unalignedANormal, ModelQuadFacing.PACKED_ALIGNED_NORMALS[alignedDirection])) {
                 Counter.HEURISTIC_OPPOSING_UNALIGNED.increment();
+                this.heuristicType = HeuristicType.SNR_MIXED;
                 return SortType.STATIC_NORMAL_RELATIVE;
             }
         }
@@ -434,6 +443,7 @@ public class TranslucentGeometryCollector {
 
         var attemptLimitIndex = Math.max(Math.min(normalCount, STATIC_TOPO_SORT_ATTEMPT_LIMITS.length - 1), 2);
         if (this.quads.length <= STATIC_TOPO_SORT_ATTEMPT_LIMITS[attemptLimitIndex]) {
+            this.heuristicType = HeuristicType.STATIC_TOPO;
             return SortType.STATIC_TOPO;
         }
 
@@ -463,7 +473,12 @@ public class TranslucentGeometryCollector {
         }
         this.quadLists = null; // not needed anymore
 
-        this.sortType = filterSortType(sortTypeHeuristic());
+        var heuristicSortType = sortTypeHeuristic();
+        var counter = Counter.fromHeuristicType(this.heuristicType);
+        if (counter != null) {
+            counter.increment();
+        }
+        this.sortType = filterSortType(heuristicSortType);
         return this.sortType;
     }
 
@@ -497,7 +512,7 @@ public class TranslucentGeometryCollector {
         }
 
         if (this.sortType == SortType.DYNAMIC) {
-            if (!Measurement.DEBUG_ONLY_TOPO_OR_DISTANCE_SORT) {
+            if (!Measurement.DEBUG_NO_BSP) {
                 try {
                     return BSPDynamicData.fromMesh(
                         translucentMesh, cameraPos, this.quads, this.sectionPos,
@@ -571,6 +586,9 @@ public class TranslucentGeometryCollector {
         var newData = makeNewTranslucentData(translucentMesh, cameraPos, oldData);
         if (newData instanceof PresentTranslucentData presentData) {
             presentData.setQuadHash(getQuadHash(this.quads));
+        }
+        if (this.heuristicType != null) {
+            newData.heuristicType = this.heuristicType;
         }
         return newData;
     }

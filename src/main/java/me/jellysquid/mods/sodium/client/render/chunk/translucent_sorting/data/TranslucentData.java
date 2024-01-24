@@ -8,6 +8,7 @@ import me.jellysquid.mods.sodium.client.gl.util.VertexRange;
 import me.jellysquid.mods.sodium.client.model.quad.properties.ModelQuadFacing;
 import me.jellysquid.mods.sodium.client.render.chunk.data.BuiltSectionMeshParts;
 import me.jellysquid.mods.sodium.client.render.chunk.translucent_sorting.SortType;
+import me.jellysquid.mods.sodium.client.render.measurement.HeuristicType;
 import net.minecraft.util.math.ChunkSectionPos;
 
 /**
@@ -21,6 +22,7 @@ public abstract class TranslucentData {
     public static final int BYTES_PER_QUAD = INDICES_PER_QUAD * BYTES_PER_INDEX;
 
     public final ChunkSectionPos sectionPos;
+    public HeuristicType heuristicType;
 
     TranslucentData(ChunkSectionPos sectionPos) {
         this.sectionPos = sectionPos;

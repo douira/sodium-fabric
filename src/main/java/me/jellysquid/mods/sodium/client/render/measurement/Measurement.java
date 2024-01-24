@@ -54,16 +54,17 @@ import me.jellysquid.mods.sodium.client.render.SodiumWorldRenderer;
  * BSP sorting: 23ns per quad, distance sorting: 38ns per quad
  */
 public class Measurement {
-    public static final boolean DEBUG_ONLY_TOPO_OR_DISTANCE_SORT = false;
+    public static final boolean DEBUG_NO_BSP = false;
     public static final boolean DEBUG_SKIP_TOPO_SORT = false;
     public static final boolean DEBUG_COMPRESSION_STATS = false;
     public static final boolean DEBUG_TRIGGER_STATS = false;
     public static final boolean DEBUG_DISABLE_FRUSTUM_CULLING = false;
     public static final boolean DEBUG_ONLY_RENDER_CURRENT_SECTION = false;
     public static final boolean DEBUG_BSP_DIRECT_SORT_COMPARISON = false;
+    public static final HeuristicType DEBUG_ONLY_RENDER_TYPE = null;
 
-    private static final boolean AUTO_RELOAD_WORLD = true;
-    private static final boolean ACCUMULATE_MEASUREMENTS = true;
+    private static final boolean AUTO_RELOAD_WORLD = false;
+    private static final boolean PER_EPOCH_MEASUREMENTS = false;
 
     static final Logger LOGGER = LogManager.getLogger(Measurement.class);
 
@@ -135,7 +136,7 @@ public class Measurement {
             for (var recorder : this.recorders) {
                 recorder.print();
 
-                if (!ACCUMULATE_MEASUREMENTS) {
+                if (PER_EPOCH_MEASUREMENTS) {
                     recorder.reset();
                 }
             }

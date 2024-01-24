@@ -11,6 +11,7 @@ import me.jellysquid.mods.sodium.client.gl.util.VertexRange;
 import me.jellysquid.mods.sodium.client.render.chunk.data.BuiltSectionMeshParts;
 import me.jellysquid.mods.sodium.client.render.chunk.translucent_sorting.TQuad;
 import me.jellysquid.mods.sodium.client.render.chunk.translucent_sorting.trigger.GeometryPlanes;
+import me.jellysquid.mods.sodium.client.render.measurement.HeuristicType;
 import me.jellysquid.mods.sodium.client.render.measurement.Measurement;
 import me.jellysquid.mods.sodium.client.render.measurement.TimingRecorder;
 import me.jellysquid.mods.sodium.client.util.NativeBuffer;
@@ -61,6 +62,17 @@ public class TopoSortDynamicData extends DynamicData {
         super(sectionPos, buffer, range, geometryPlanes, cameraPos);
         this.quads = quads;
         this.distancesByNormal = distancesByNormal;
+        this.heuristicType = null;
+        if (this.GFNITrigger) {
+            this.heuristicType = HeuristicType.DYNAMIC_TOPO;
+        }
+        if (this.directTrigger) {
+            if (this.heuristicType == HeuristicType.DYNAMIC_TOPO) {
+                this.heuristicType = HeuristicType.DYNAMIC_DISTANCE_TOPO;
+            } else {
+                this.heuristicType = HeuristicType.DYNAMIC_DISTANCE;
+            }
+        }
     }
 
     public boolean GFNITriggerEnabled() {
@@ -82,6 +94,9 @@ public class TopoSortDynamicData extends DynamicData {
             this.GFNITrigger = false;
             this.turnGFNITriggerOff = true;
         }
+        if (this.heuristicType == HeuristicType.DYNAMIC_DISTANCE_TOPO) {
+            this.heuristicType = HeuristicType.DYNAMIC_DISTANCE;
+        }
     }
 
     private void turnDirectTriggerOn() {
@@ -89,12 +104,18 @@ public class TopoSortDynamicData extends DynamicData {
             this.directTrigger = true;
             this.turnDirectTriggerOn = true;
         }
+        if (this.heuristicType == HeuristicType.DYNAMIC_TOPO) {
+            this.heuristicType = HeuristicType.DYNAMIC_DISTANCE_TOPO;
+        }
     }
 
     private void turnDirectTriggerOff() {
         if (this.directTrigger) {
             this.directTrigger = false;
             this.turnDirectTriggerOff = true;
+        }
+        if (this.heuristicType == HeuristicType.DYNAMIC_DISTANCE_TOPO) {
+            this.heuristicType = HeuristicType.DYNAMIC_TOPO;
         }
     }
 
@@ -146,8 +167,8 @@ public class TopoSortDynamicData extends DynamicData {
         IntBuffer indexBuffer = this.getBuffer().getDirectBuffer().asIntBuffer();
 
         if (this.quads.length > MAX_TOPO_SORT_QUADS) {
-            this.turnGFNITriggerOff();
             this.turnDirectTriggerOn();
+            this.turnGFNITriggerOff();
         }
 
         if (this.GFNITrigger && !isDirectTrigger) {
@@ -167,8 +188,8 @@ public class TopoSortDynamicData extends DynamicData {
             if (!initial && sortTime > (this.consecutiveTopoSortFailures > 0
                     ? MAX_FAILING_TOPO_SORT_TIME_NS
                     : MAX_TOPO_SORT_TIME_NS)) {
-                this.turnGFNITriggerOff();
                 this.turnDirectTriggerOn();
+                this.turnGFNITriggerOff();
             } else if (result) {
                 // disable distance sorting because topo sort seems to be possible.
                 this.turnDirectTriggerOff();
@@ -181,10 +202,10 @@ public class TopoSortDynamicData extends DynamicData {
                 // topo sort on while the angle triggering is also active to maybe get a topo
                 // sort success from a different angle.
                 this.consecutiveTopoSortFailures++;
+                this.turnDirectTriggerOn();
                 if (this.consecutiveTopoSortFailures >= getAttemptsForTime(sortTime)) {
                     this.turnGFNITriggerOff();
                 }
-                this.turnDirectTriggerOn();
             }
         }
 

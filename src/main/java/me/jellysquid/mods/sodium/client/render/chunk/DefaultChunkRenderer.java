@@ -23,6 +23,7 @@ import me.jellysquid.mods.sodium.client.render.chunk.terrain.DefaultTerrainRende
 import me.jellysquid.mods.sodium.client.render.chunk.terrain.TerrainRenderPass;
 import me.jellysquid.mods.sodium.client.render.chunk.vertex.format.ChunkMeshAttribute;
 import me.jellysquid.mods.sodium.client.render.chunk.vertex.format.ChunkVertexType;
+import me.jellysquid.mods.sodium.client.render.measurement.Measurement;
 import me.jellysquid.mods.sodium.client.render.viewport.CameraTransform;
 import me.jellysquid.mods.sodium.client.util.BitwiseMath;
 import org.lwjgl.system.MemoryUtil;
@@ -116,6 +117,15 @@ public class DefaultChunkRenderer extends ShaderChunkRenderer {
 
         while (iterator.hasNext()) {
             int sectionIndex = iterator.nextByteAsInt();
+
+            var matchType = Measurement.DEBUG_ONLY_RENDER_TYPE;
+            // var matchType = HeuristicType.BSP;
+            if (matchType != null) {
+                var sectionType = renderRegion.getSection(sectionIndex).getTranslucentData().heuristicType;
+                if (sectionType != matchType) {
+                    continue;
+                }
+            }
 
             int chunkX = originX + LocalSectionIndex.unpackX(sectionIndex);
             int chunkY = originY + LocalSectionIndex.unpackY(sectionIndex);
