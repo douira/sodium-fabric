@@ -236,7 +236,9 @@ public class SortTriggering {
                     this.triggeredNormalCount,
                     this.gfniTriggerCount,
                     this.directTriggerCount));
-            list.add("N=%05d SNR=%05d STA=%05d DYN=%05d (DIR=%02d)".formatted(
+            list.add("E=%05d O=%05d N=%05d SNR=%05d STA=%05d DYN=%05d (DIR=%02d)".formatted(
+                    this.sortTypeCounters[SortType.EMPTY_SECTION.ordinal()],
+                    this.sortTypeCounters[SortType.NO_TRANSLUCENT.ordinal()],
                     this.sortTypeCounters[SortType.NONE.ordinal()],
                     this.sortTypeCounters[SortType.STATIC_NORMAL_RELATIVE.ordinal()],
                     this.sortTypeCounters[SortType.STATIC_TOPO.ordinal()],
