@@ -108,6 +108,65 @@ public abstract class BSPNode {
             }
         }
 
+        // only do the coplanar test on large sets if a random sample of quads is
+        // aligned
+        boolean doCoplanarTest = indexes.size() < 20;
+        float yDistance = Float.NEGATIVE_INFINITY;
+        boolean first = true;
+        if (!doCoplanarTest) {
+            for (int i = 0; i < 4; i++) {
+                var pickedIndex = indexes.getInt(Math.floorMod(i * 17, indexes.size()));
+                var extents = workspace.quads[pickedIndex].extents();
+                var extentA = extents[1];
+                var extentB = extents[4];
+
+                if (extentA == extentB) {
+                    if (first) {
+                        yDistance = extentA;
+                    } else if (yDistance != extentA) {
+                        yDistance = Float.NEGATIVE_INFINITY;
+                        break;
+                    }
+                } else {
+                    yDistance = Float.NEGATIVE_INFINITY;
+                    break;
+                }
+
+                first = false;
+            }
+            if (yDistance != Float.NEGATIVE_INFINITY) {
+                doCoplanarTest = true;
+            }
+        }
+
+        if (doCoplanarTest) {
+            // test for all quads being coplanar aligned
+            for (int i = 0; i < indexes.size(); i++) {
+                var quadIndex = indexes.getInt(i);
+                var extents = workspace.quads[quadIndex].extents();
+                var extentA = extents[1];
+                var extentB = extents[4];
+
+                if (extentA == extentB) {
+                    if (first) {
+                        yDistance = extentA;
+                    } else if (yDistance != extentA) {
+                        yDistance = Float.NEGATIVE_INFINITY;
+                        break;
+                    }
+                } else {
+                    yDistance = Float.NEGATIVE_INFINITY;
+                    break;
+                }
+
+                first = false;
+            }
+
+            if (yDistance != Float.NEGATIVE_INFINITY) {
+                return new LeafMultiBSPNode(BSPSortState.compressIndexes(indexes));
+            }
+        }
+
         return InnerPartitionBSPNode.build(workspace, indexes, depth, oldNode);
     }
 }
