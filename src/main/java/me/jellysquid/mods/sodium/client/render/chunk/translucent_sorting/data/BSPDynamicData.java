@@ -27,7 +27,7 @@ public class BSPDynamicData extends DynamicData {
     private static final TimingRecorder sortTriggerRecorder = new TimingRecorder("BSP sort trigger");
     private static final TimingRecorder directSortComparisonRecorder = new TimingRecorder("BSP direct sort comparison");
     private static final TimingRecorder buildRecorder = new TimingRecorder("BSP build");
-    private static final TimingRecorder partialUpdateRecorder = new TimingRecorder("BSP partial update", 10, true);
+    private static final TimingRecorder partialUpdateRecorder = new TimingRecorder("BSP partial update", 10, false);
 
     private static final int NODE_REUSE_MIN_GENERATION = 1;
 
