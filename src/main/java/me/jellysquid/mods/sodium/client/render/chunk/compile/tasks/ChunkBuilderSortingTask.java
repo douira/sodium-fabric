@@ -5,6 +5,7 @@ import org.joml.Vector3dc;
 import me.jellysquid.mods.sodium.client.render.chunk.RenderSection;
 import me.jellysquid.mods.sodium.client.render.chunk.compile.ChunkBuildContext;
 import me.jellysquid.mods.sodium.client.render.chunk.compile.ChunkSortOutput;
+import me.jellysquid.mods.sodium.client.render.chunk.compile.executor.ChunkBuilder;
 import me.jellysquid.mods.sodium.client.render.chunk.translucent_sorting.data.DynamicData;
 import me.jellysquid.mods.sodium.client.util.task.CancellationToken;
 
@@ -31,5 +32,10 @@ public class ChunkBuilderSortingTask extends ChunkBuilderTask<ChunkSortOutput> {
             return new ChunkBuilderSortingTask(render, frame, absoluteCameraPos, dynamicData);
         }
         return null;
+    }
+
+    @Override
+    public int getEffort() {
+        return ChunkBuilder.LOW_EFFORT;
     }
 }

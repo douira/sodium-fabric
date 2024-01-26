@@ -7,8 +7,8 @@ import org.joml.Vector3dc;
 
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import me.jellysquid.mods.sodium.client.SodiumClientMod;
-import me.jellysquid.mods.sodium.client.gui.SodiumGameOptions.SortBehavior;
 import me.jellysquid.mods.sodium.client.render.chunk.translucent_sorting.AlignableNormal;
+import me.jellysquid.mods.sodium.client.render.chunk.translucent_sorting.SortBehavior;
 import me.jellysquid.mods.sodium.client.render.chunk.translucent_sorting.SortType;
 import me.jellysquid.mods.sodium.client.render.chunk.translucent_sorting.data.DynamicData;
 import me.jellysquid.mods.sodium.client.render.chunk.translucent_sorting.data.TopoSortDynamicData;
@@ -19,6 +19,9 @@ import net.minecraft.util.math.ChunkSectionPos;
  * This class is a central point in translucency sorting. It counts the number
  * of translucent data objects for each sort type and delegates triggering of
  * sections for dynamic sorting to the trigger components.
+ * 
+ * TODO:
+ * - investigate why there's a similar number of STA and DYN sections. This might be normal, the counters might be broken or the heuristic is actually wrong.
  * 
  * @author douira (the translucent_sorting package)
  */
@@ -220,18 +223,16 @@ public class SortTriggering {
             this.catchupData = null;
         } else {
             this.removeSection(oldData, pos.asLong());
-            return;
         }
     }
 
     public void addDebugStrings(List<String> list) {
-        var sortBehavior = SodiumClientMod.options().performance.sortBehavior;
+        var sortBehavior = SodiumClientMod.options().performance.getSortBehavior();
         if (sortBehavior == SortBehavior.OFF) {
             list.add("TS OFF");
         } else {
-            list.add("TS (%s,%s) NL=%02d TrN=%02d TrS=G%03d/D%03d".formatted(
+            list.add("TS (%s) NL=%02d TrN=%02d TrS=G%03d/D%03d".formatted(
                     sortBehavior.getShortName(),
-                    SodiumClientMod.options().performance.deferSortMode.getShortName(),
                     this.gfni.getUniqueNormalCount(),
                     this.triggeredNormalCount,
                     this.gfniTriggerCount,

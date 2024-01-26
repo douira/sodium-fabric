@@ -258,14 +258,6 @@ public class SodiumGameOptionPages {
                         .setBinding((opts, value) -> opts.performance.alwaysDeferChunkUpdates = value, opts -> opts.performance.alwaysDeferChunkUpdates)
                         .setFlags(OptionFlag.REQUIRES_RENDERER_UPDATE)
                         .build())
-                .add(OptionImpl.createBuilder(SodiumGameOptions.DeferSortMode.class, sodiumOpts)
-                        .setName(Text.translatable("sodium.options.defer_sorting.name"))
-                        .setTooltip(Text.translatable("sodium.options.defer_sorting.tooltip"))
-                        .setControl(option -> new CyclingControl<>(option, SodiumGameOptions.DeferSortMode.class))
-                        .setImpact(OptionImpact.MEDIUM)
-                        .setBinding((opts, value) -> opts.performance.deferSortMode = value, opts -> opts.performance.deferSortMode)
-                        .setFlags(OptionFlag.REQUIRES_RENDERER_UPDATE)
-                        .build())
                 .build());
 
         groups.add(OptionGroup.createBuilder()
@@ -316,12 +308,12 @@ public class SodiumGameOptionPages {
                 .build());
 
         groups.add(OptionGroup.createBuilder()
-                .add(OptionImpl.createBuilder(SodiumGameOptions.SortBehavior.class, sodiumOpts)
+                .add(OptionImpl.createBuilder(boolean.class, sodiumOpts)
                         .setName(Text.translatable("sodium.options.sort_behavior.name"))
                         .setTooltip(Text.translatable("sodium.options.sort_behavior.tooltip"))
-                        .setControl(option -> new CyclingControl<>(option, SodiumGameOptions.SortBehavior.class))
-                        .setBinding((opts, value) -> opts.performance.sortBehavior = value, opts -> opts.performance.sortBehavior)
-                        .setImpact(OptionImpact.MEDIUM)
+                        .setControl(TickBoxControl::new)
+                        .setBinding((opts, value) -> opts.performance.sortingEnabled = value, opts -> opts.performance.sortingEnabled)
+                        .setImpact(OptionImpact.LOW)
                         .setFlags(OptionFlag.REQUIRES_RENDERER_RELOAD)
                         .build())
                 .build());

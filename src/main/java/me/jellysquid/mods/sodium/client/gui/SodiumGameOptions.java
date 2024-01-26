@@ -5,6 +5,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.annotations.SerializedName;
 import me.jellysquid.mods.sodium.client.gui.options.TextProvider;
+import me.jellysquid.mods.sodium.client.render.chunk.translucent_sorting.SortBehavior;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.option.GraphicsMode;
 import net.minecraft.text.Text;
@@ -39,7 +40,6 @@ public class SodiumGameOptions {
         public int chunkBuilderThreads = 0;
         @SerializedName("always_defer_chunk_updates_v2") // this will reset the option in older configs
         public boolean alwaysDeferChunkUpdates = true;
-        public DeferSortMode deferSortMode = DeferSortMode.DEFER_ONE_FRAME;
 
         public boolean animateOnlyVisibleTextures = true;
         public boolean useEntityCulling = true;
@@ -47,52 +47,10 @@ public class SodiumGameOptions {
         public boolean useBlockFaceCulling = true;
         public boolean useNoErrorGLContext = true;
 
-        public SortBehavior sortBehavior = SortBehavior.DYNAMIC;
-    }
+        public boolean sortingEnabled = true;
 
-    public enum DeferSortMode implements TextProvider {
-        ALWAYS("sodium.options.defer_sorting.always", "A"),
-        DEFER_ONE_FRAME("sodium.options.defer_sorting.defer_one_frame", "1"),
-        DEFER_ZERO_FRAMES("sodium.options.defer_sorting.defer_zero_frames", "0");
-
-        private final Text name;
-                private final String shortName;
-
-        DeferSortMode(String name, String shortName) {
-            this.name = Text.translatable(name);
-            this.shortName = shortName;
-        }
-
-        @Override
-        public Text getLocalizedName() {
-            return this.name;
-        }
-
-        public String getShortName() {
-            return this.shortName;
-        }
-    }
-
-    public enum SortBehavior implements TextProvider {
-        OFF("options.off", "OFF"),
-        STATIC("sodium.options.sort_behavior.reduced", "S"),
-        DYNAMIC("sodium.options.sort_behavior.accurate", "D");
-
-        private final Text name;
-        private final String shortName;
-
-        SortBehavior(String name, String shortName) {
-            this.name = Text.translatable(name);
-            this.shortName = shortName;
-        }
-
-        @Override
-        public Text getLocalizedName() {
-            return this.name;
-        }
-
-        public String getShortName() {
-            return this.shortName;
+        public SortBehavior getSortBehavior() {
+            return this.sortingEnabled ? SortBehavior.DYNAMIC_DEFER_NEARBY_ONE_FRAME : SortBehavior.OFF;
         }
     }
 

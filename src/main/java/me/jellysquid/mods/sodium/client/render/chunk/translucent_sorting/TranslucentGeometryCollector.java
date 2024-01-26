@@ -8,7 +8,6 @@ import org.joml.Vector3f;
 
 import it.unimi.dsi.fastutil.objects.ReferenceArrayList;
 import me.jellysquid.mods.sodium.client.SodiumClientMod;
-import me.jellysquid.mods.sodium.client.gui.SodiumGameOptions.SortBehavior;
 import me.jellysquid.mods.sodium.client.model.quad.properties.ModelQuadFacing;
 import me.jellysquid.mods.sodium.client.render.chunk.compile.ChunkBuildOutput;
 import me.jellysquid.mods.sodium.client.render.chunk.compile.pipeline.FluidRenderer;
@@ -274,7 +273,7 @@ public class TranslucentGeometryCollector {
      * @param sortType the sort type to filter
      */
     private static SortType filterSortType(SortType sortType) {
-        SortBehavior sortBehavior = SodiumClientMod.options().performance.sortBehavior;
+        SortBehavior sortBehavior = SodiumClientMod.options().performance.getSortBehavior();
         switch (sortBehavior) {
             case OFF:
                 return SortType.NONE;
@@ -284,10 +283,8 @@ public class TranslucentGeometryCollector {
                 } else {
                     return SortType.NONE;
                 }
-            case DYNAMIC:
-                return sortType;
             default:
-                throw new IllegalStateException("Unknown sort behavior: " + sortBehavior);
+                return sortType;
         }
     }
 
@@ -335,7 +332,7 @@ public class TranslucentGeometryCollector {
      * @return the required sort type to ensure this section always looks correct
      */
     private SortType sortTypeHeuristic() {
-        SortBehavior sortBehavior = SodiumClientMod.options().performance.sortBehavior;
+        SortBehavior sortBehavior = SodiumClientMod.options().performance.getSortBehavior();
         int alignedNormalCount = Integer.bitCount(this.alignedFacingBitmap);
         int alignedPlaneCount = alignedNormalCount;
         if (this.alignedExtentsMultiple) {
