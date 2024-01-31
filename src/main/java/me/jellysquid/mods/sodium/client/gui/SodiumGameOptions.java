@@ -5,6 +5,8 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.annotations.SerializedName;
 import me.jellysquid.mods.sodium.client.gui.options.TextProvider;
+import me.jellysquid.mods.sodium.client.render.chunk.translucent_sorting.SortBehavior;
+import me.jellysquid.mods.sodium.client.util.FileUtil;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.option.GraphicsMode;
 import net.minecraft.text.Text;
@@ -14,8 +16,8 @@ import java.io.IOException;
 import java.lang.reflect.Modifier;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 
+// TODO: Rename in Sodium 0.6
 public class SodiumGameOptions {
     private static final String DEFAULT_FILE_NAME = "sodium-options.json";
 
@@ -26,13 +28,12 @@ public class SodiumGameOptions {
 
     private boolean readOnly;
 
-    private Path configPath;
+    private SodiumGameOptions() {
+        // NO-OP
+    }
 
     public static SodiumGameOptions defaults() {
-        var options = new SodiumGameOptions();
-        options.configPath = getConfigPath(DEFAULT_FILE_NAME);
-
-        return options;
+        return new SodiumGameOptions();
     }
 
     public static class PerformanceSettings {
@@ -47,71 +48,6 @@ public class SodiumGameOptions {
         public boolean useNoErrorGLContext = true;
 
         public SortBehavior sortBehavior = SortBehavior.DYNAMIC_DEFER_NEARBY_ONE_FRAME;
-    }
-
-    public enum SortBehavior implements TextProvider {
-        OFF("options.off", "OFF", SortMode.NONE),
-        STATIC("sodium.options.sort_behavior.reduced", "S", SortMode.STATIC),
-        DYNAMIC_DEFER_ALWAYS("sodium.options.defer_sorting.df", "DF", PriorityMode.NONE, DeferMode.ALWAYS),
-        DYNAMIC_DEFER_NEARBY_ONE_FRAME("sodium.options.defer_sorting.n1", "N1", PriorityMode.NEARBY, DeferMode.ONE_FRAME),
-        DYNAMIC_DEFER_NEARBY_ZERO_FRAMES("sodium.options.defer_sorting.n0", "N0", PriorityMode.NEARBY, DeferMode.ZERO_FRAMES),
-        DYNAMIC_DEFER_ALL_ONE_FRAME("sodium.options.defer_sorting.a1", "A1", PriorityMode.ALL, DeferMode.ONE_FRAME),
-        DYNAMIC_DEFER_ALL_ZERO_FRAMES("sodium.options.defer_sorting.a0", "A0", PriorityMode.ALL, DeferMode.ZERO_FRAMES);
-
-        private final Text name;
-        private final String shortName;
-        private final SortMode sortMode;
-        private final PriorityMode priorityMode;
-        private final DeferMode deferMode;
-
-        SortBehavior(String name, String shortName, SortMode sortMode, PriorityMode priorityMode, DeferMode deferMode) {
-            this.name = Text.translatable(name);
-            this.shortName = shortName;
-            this.sortMode = sortMode;
-            this.priorityMode = priorityMode;
-            this.deferMode = deferMode;
-        }
-
-        SortBehavior(String name, String shortName, SortMode sortMode) {
-            this(name, shortName, sortMode, null, null);
-        }
-
-        SortBehavior(String name, String shortName, PriorityMode priorityMode, DeferMode deferMode) {
-            this(name, shortName, SortMode.DYNAMIC, priorityMode, deferMode);
-        }
-
-        @Override
-        public Text getLocalizedName() {
-            return this.name;
-        }
-
-        public String getShortName() {
-            return this.shortName;
-        }
-
-        public SortMode getSortMode() {
-            return this.sortMode;
-        }
-
-        public PriorityMode getPriorityMode() {
-            return this.priorityMode;
-        }
-
-        public DeferMode getDeferMode() {
-            return this.deferMode;
-        }
-
-        public static enum SortMode {
-            NONE, STATIC, DYNAMIC
-        }
-
-        public static enum PriorityMode {
-            NONE, NEARBY, ALL
-        }
-
-        public static enum DeferMode {
-            ALWAYS, ONE_FRAME, ZERO_FRAMES
-        }
     }
 
     public static class AdvancedSettings {
@@ -129,7 +65,8 @@ public class SodiumGameOptions {
     }
 
     public static class NotificationSettings {
-        public boolean hideDonationButton = false;
+        public boolean hasClearedDonationButton = false;
+        public boolean hasSeenDonationPrompt = false;
     }
 
     public enum GraphicsQuality implements TextProvider {
@@ -159,12 +96,8 @@ public class SodiumGameOptions {
             .excludeFieldsWithModifiers(Modifier.PRIVATE)
             .create();
 
-    public static SodiumGameOptions load() {
-        return load(DEFAULT_FILE_NAME);
-    }
-
-    public static SodiumGameOptions load(String name) {
-        Path path = getConfigPath(name);
+    public static SodiumGameOptions loadFromDisk() {
+        Path path = getConfigPath();
         SodiumGameOptions config;
 
         if (Files.exists(path)) {
@@ -177,10 +110,8 @@ public class SodiumGameOptions {
             config = new SodiumGameOptions();
         }
 
-        config.configPath = path;
-
         try {
-            config.writeChanges();
+            writeToDisk(config);
         } catch (IOException e) {
             throw new RuntimeException("Couldn't update config file", e);
         }
@@ -188,18 +119,19 @@ public class SodiumGameOptions {
         return config;
     }
 
-    private static Path getConfigPath(String name) {
+    private static Path getConfigPath() {
         return FabricLoader.getInstance()
                 .getConfigDir()
-                .resolve(name);
+                .resolve(DEFAULT_FILE_NAME);
     }
 
-    public void writeChanges() throws IOException {
-        if (this.isReadOnly()) {
+    public static void writeToDisk(SodiumGameOptions config) throws IOException {
+        if (config.isReadOnly()) {
             throw new IllegalStateException("Config file is read-only");
         }
 
-        Path dir = this.configPath.getParent();
+        Path path = getConfigPath();
+        Path dir = path.getParent();
 
         if (!Files.exists(dir)) {
             Files.createDirectories(dir);
@@ -207,14 +139,7 @@ public class SodiumGameOptions {
             throw new IOException("Not a directory: " + dir);
         }
 
-        // Use a temporary location next to the config's final destination
-        Path tempPath = this.configPath.resolveSibling(this.configPath.getFileName() + ".tmp");
-
-        // Write the file to our temporary location
-        Files.writeString(tempPath, GSON.toJson(this));
-
-        // Atomically replace the old config file (if it exists) with the temporary file
-        Files.move(tempPath, this.configPath, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+        FileUtil.writeTextRobustly(GSON.toJson(config), path);
     }
 
     public boolean isReadOnly() {
@@ -223,9 +148,5 @@ public class SodiumGameOptions {
 
     public void setReadOnly() {
         this.readOnly = true;
-    }
-
-    public String getFileName() {
-        return this.configPath.getFileName().toString();
     }
 }

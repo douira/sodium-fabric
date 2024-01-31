@@ -12,6 +12,7 @@ import me.jellysquid.mods.sodium.client.gui.options.control.TickBoxControl;
 import me.jellysquid.mods.sodium.client.gui.options.storage.MinecraftOptionsStorage;
 import me.jellysquid.mods.sodium.client.gui.options.storage.SodiumOptionsStorage;
 import me.jellysquid.mods.sodium.client.compatibility.workarounds.Workarounds;
+import me.jellysquid.mods.sodium.client.render.chunk.translucent_sorting.SortBehavior;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gl.Framebuffer;
 import net.minecraft.client.option.*;
@@ -23,6 +24,7 @@ import org.lwjgl.opengl.GLCapabilities;
 import java.util.ArrayList;
 import java.util.List;
 
+// TODO: Rename in Sodium 0.6
 public class SodiumGameOptionPages {
     private static final SodiumOptionsStorage sodiumOpts = new SodiumOptionsStorage();
     private static final MinecraftOptionsStorage vanillaOpts = new MinecraftOptionsStorage();
@@ -308,10 +310,10 @@ public class SodiumGameOptionPages {
                 .build());
 
         groups.add(OptionGroup.createBuilder()
-                .add(OptionImpl.createBuilder(SodiumGameOptions.SortBehavior.class, sodiumOpts)
+                .add(OptionImpl.createBuilder(SortBehavior.class, sodiumOpts)
                         .setName(Text.translatable("sodium.options.sort_behavior.name"))
                         .setTooltip(Text.translatable("sodium.options.sort_behavior.tooltip"))
-                        .setControl(option -> new CyclingControl<>(option, SodiumGameOptions.SortBehavior.class))
+                        .setControl(option -> new CyclingControl<>(option, SortBehavior.class))
                         .setBinding((opts, value) -> opts.performance.sortBehavior = value, opts -> opts.performance.sortBehavior)
                         .setImpact(OptionImpact.MEDIUM)
                         .setFlags(OptionFlag.REQUIRES_RENDERER_RELOAD)

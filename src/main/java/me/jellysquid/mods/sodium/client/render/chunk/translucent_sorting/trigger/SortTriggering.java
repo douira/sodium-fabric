@@ -7,7 +7,7 @@ import org.joml.Vector3dc;
 
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import me.jellysquid.mods.sodium.client.SodiumClientMod;
-import me.jellysquid.mods.sodium.client.gui.SodiumGameOptions.SortBehavior;
+import me.jellysquid.mods.sodium.client.render.chunk.translucent_sorting.SortBehavior;
 import me.jellysquid.mods.sodium.client.render.chunk.translucent_sorting.AlignableNormal;
 import me.jellysquid.mods.sodium.client.render.chunk.translucent_sorting.SortType;
 import me.jellysquid.mods.sodium.client.render.chunk.translucent_sorting.data.DynamicData;
@@ -72,12 +72,7 @@ public class SortTriggering {
      * Triggers the sections that the given camera movement crosses face planes of.
      * 
      * @param triggerSectionCallback called for each section that is triggered
-     * @param lastCameraX            the camera x position before the movement
-     * @param lastCameraY            the camera y position before the movement
-     * @param lastCameraZ            the camera z position before the movement
-     * @param cameraX                the camera x position after the movement
-     * @param cameraY                the camera y position after the movement
-     * @param cameraZ                the camera z position after the movement
+     * @param movement the camera movement to trigger for
      */
     public void triggerSections(BiConsumer<Long, Boolean> triggerSectionCallback, CameraMovement movement) {
         triggeredNormals.clear();
@@ -97,7 +92,7 @@ public class SortTriggering {
             this.directTriggerCount = oldDirectTriggerCount;
         }
 
-        triggerSectionCallback = null;
+        this.triggerSectionCallback = null;
     }
 
     private boolean isCatchingUp() {
@@ -228,7 +223,7 @@ public class SortTriggering {
 
     public void addDebugStrings(List<String> list) {
         var sortBehavior = SodiumClientMod.options().performance.sortBehavior;
-        if (sortBehavior == SortBehavior.OFF) {
+        if (sortBehavior.getSortMode() == SortBehavior.SortMode.NONE) {
             list.add("TS OFF");
         } else {
             list.add("TS (%s) NL=%02d TrN=%02d TrS=G%03d/D%03d".formatted(
