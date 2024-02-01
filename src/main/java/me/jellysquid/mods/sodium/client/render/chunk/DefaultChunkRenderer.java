@@ -126,6 +126,9 @@ public class DefaultChunkRenderer extends ShaderChunkRenderer {
                     continue;
                 }
             }
+            if (Measurement.DEBUG_REDUCE_RENDER_INTERVAL > 0 && sectionIndex % Measurement.DEBUG_REDUCE_RENDER_INTERVAL != 0) {
+                continue;
+            }
 
             int chunkX = originX + LocalSectionIndex.unpackX(sectionIndex);
             int chunkY = originY + LocalSectionIndex.unpackY(sectionIndex);

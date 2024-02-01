@@ -1,18 +1,21 @@
 package me.jellysquid.mods.sodium.client.render.measurement;
 
+import net.minecraft.client.MinecraftClient;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import it.unimi.dsi.fastutil.objects.ReferenceArrayList;
 import me.jellysquid.mods.sodium.client.render.SodiumWorldRenderer;
 
+import java.time.Duration;
+
 /**
  * Compression results on 1992 sections:
  * compression candidates 55084, compression performed 1202 (ratio: 2.1%)
  * uncompressed size 397665, compressed size 170944 (ratio: 42.9%)
- * Removing the compresson minimum size results in a total compression ratio of
+ * Removing the compression minimum size results in a total compression ratio of
  * 34% and a 92% success rate. This isn't much of an improvement, it seems the
- * large candidates make up most of the compressable data. Increasing the
+ * large candidates make up most of the compressible data. Increasing the
  * minimum size to 16 lowers the success rate to 3.4% while the total
  * compression ratio is 39%.
  * 
@@ -59,16 +62,20 @@ public class Measurement {
     public static final boolean DEBUG_COMPRESSION_STATS = false;
     public static final boolean DEBUG_TRIGGER_STATS = false;
     public static final boolean DEBUG_DISABLE_FRUSTUM_CULLING = false;
+    public static final boolean DEBUG_DISABLE_OCCLUSION_CULLING = false;
     public static final boolean DEBUG_ONLY_RENDER_CURRENT_SECTION = false;
     public static final boolean DEBUG_BSP_DIRECT_SORT_COMPARISON = false;
     public static final HeuristicType DEBUG_ONLY_RENDER_TYPE = null;
+    public static final int DEBUG_REDUCE_RENDER_INTERVAL = 15;
+    public static final boolean DEBUG_FREEZE_WORLD = true;
 
     private static final boolean AUTO_RELOAD_WORLD = false;
+    private static final int EPOCH_COUNT_TARGET = 50;
     private static final boolean PER_EPOCH_MEASUREMENTS = false;
 
     static final Logger LOGGER = LogManager.getLogger(Measurement.class);
 
-    private static enum ResetState {
+    private enum ResetState {
         INITIAL,
         WARMUP,
         MEASUREMENT
@@ -78,6 +85,7 @@ public class Measurement {
     private final ReferenceArrayList<TimingRecorder> recorders = new ReferenceArrayList<>();
     private int currentEpoch = 0;
     private ResetState resetState = ResetState.INITIAL;
+    private long measurementStartTime;
 
     public static Measurement instance() {
         return SodiumWorldRenderer.instance().measurement;
@@ -100,6 +108,10 @@ public class Measurement {
     }
 
     public void reset() {
+        if (DEBUG_FREEZE_WORLD) {
+            MinecraftClient.getInstance().getServer().getTickManager().setFrozen(true);
+        }
+
         if (this.resetState == ResetState.INITIAL) {
             LOGGER.info("Started measurement");
             this.resetState = ResetState.WARMUP;
@@ -127,12 +139,21 @@ public class Measurement {
             LOGGER.info("All recorders have been warmed up. Starting measurement.");
             this.resetState = ResetState.MEASUREMENT;
             this.currentEpoch = 1;
+            this.measurementStartTime = System.nanoTime();
 
             for (var recorder : this.recorders) {
                 recorder.reset();
             }
         } else {
             LOGGER.info(this.currentEpoch + " epochs complete");
+            if (EPOCH_COUNT_TARGET > 0) {
+                var elapsed = System.nanoTime() - this.measurementStartTime;
+                var epochTime = elapsed / this.currentEpoch;
+                var remaining = Duration.ofNanos(epochTime * (EPOCH_COUNT_TARGET - this.currentEpoch));
+                LOGGER.info((EPOCH_COUNT_TARGET - this.currentEpoch) + " epochs remaining, " +
+                        "estimated time remaining: " + remaining);
+            }
+
             for (var recorder : this.recorders) {
                 recorder.print();
 

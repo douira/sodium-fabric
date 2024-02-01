@@ -3,19 +3,19 @@ package me.jellysquid.mods.sodium.client.render.measurement;
 import it.unimi.dsi.fastutil.objects.ReferenceArrayList;
 
 public class TimingRecorder {
-    static record TimedEvent(int size, long ns) {
+    record TimedEvent(int size, long ns) {
     }
 
     private static final int WARMUP_COUNT = 5000;
 
-    private ReferenceArrayList<TimedEvent> events = new ReferenceArrayList<>(1000);
+    private final ReferenceArrayList<TimedEvent> events = new ReferenceArrayList<>(1000);
     private boolean warmedUp = false;
 
     private final String name;
+    private final boolean printEvents;
+    private static final boolean PRINT_DATA = false;
     private int remainingWarmup;
     private boolean receivedEvents;
-    private boolean printEvents;
-    private boolean printData;
 
     public TimingRecorder(String name, int warmupCount, boolean printEvents) {
         this.name = name;
@@ -42,7 +42,7 @@ public class TimingRecorder {
     }
 
     synchronized public void recordDelta(int size, long delta) {
-        receivedEvents = true;
+        this.receivedEvents = true;
         if (!this.warmedUp) {
             this.remainingWarmup--;
             if (this.remainingWarmup == 0) {
@@ -77,7 +77,7 @@ public class TimingRecorder {
         long totalSize = 0;
 
         for (var event : this.events) {
-            if (this.printData) {
+            if (PRINT_DATA) {
                 builder.append(event.size).append(",").append(event.ns).append(";");
             }
             totalTime += event.ns;
@@ -99,7 +99,7 @@ public class TimingRecorder {
                 "ns. Avg quads per event " + (totalSize / eventCount) +
                 ". " + eventCount + " events.");
 
-        if (this.printData) {
+        if (PRINT_DATA) {
             Measurement.LOGGER.info(builder.toString());
         }
     }

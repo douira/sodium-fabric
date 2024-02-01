@@ -38,6 +38,7 @@ import me.jellysquid.mods.sodium.client.render.chunk.translucent_sorting.trigger
 import me.jellysquid.mods.sodium.client.render.chunk.translucent_sorting.trigger.SortTriggering;
 import me.jellysquid.mods.sodium.client.render.chunk.vertex.format.ChunkMeshFormats;
 import me.jellysquid.mods.sodium.client.render.measurement.Counter;
+import me.jellysquid.mods.sodium.client.render.measurement.Measurement;
 import me.jellysquid.mods.sodium.client.render.texture.SpriteUtil;
 import me.jellysquid.mods.sodium.client.render.util.RenderAsserts;
 import me.jellysquid.mods.sodium.client.render.viewport.CameraTransform;
@@ -167,9 +168,8 @@ public class RenderSectionManager {
         final boolean useOcclusionCulling;
         BlockPos origin = camera.getBlockPos();
 
-        if (spectator && this.world.getBlockState(origin)
-                .isOpaqueFullCube(this.world, origin))
-        {
+        if (Measurement.DEBUG_DISABLE_OCCLUSION_CULLING || spectator && this.world.getBlockState(origin)
+                .isOpaqueFullCube(this.world, origin)) {
             useOcclusionCulling = false;
         } else {
             useOcclusionCulling = MinecraftClient.getInstance().chunkCullingEnabled;
@@ -331,7 +331,7 @@ public class RenderSectionManager {
                     // a rebuild always generates new translucent data which means applyTriggerChanges isn't necessary
                     result.render.setTranslucentData(chunkBuildOutput.translucentData);
                 }
-            } else if (result instanceof ChunkSortOutput chunkSortOutput 
+            } else if (result instanceof ChunkSortOutput chunkSortOutput
                     && chunkSortOutput.dynamicData instanceof TopoSortDynamicData data) {
                 this.ts.applyTriggerChanges(data, result.render.getPosition(), this.cameraPosition);
             }
