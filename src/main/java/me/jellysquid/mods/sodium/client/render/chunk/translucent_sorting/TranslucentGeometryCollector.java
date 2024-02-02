@@ -534,7 +534,7 @@ public class TranslucentGeometryCollector {
                         geometryPlanes, buffer);
                     }
             } else {
-                var geometryPlanes = GeometryPlanes.fromQuadLists(sectionPos, this.quads);
+                var geometryPlanes = GeometryPlanes.fromQuadLists(this.sectionPos, this.quads);
                 return TopoSortDynamicData.fromMesh(
                         translucentMesh, cameraPos, this.quads, this.sectionPos,
                         geometryPlanes, buffer);

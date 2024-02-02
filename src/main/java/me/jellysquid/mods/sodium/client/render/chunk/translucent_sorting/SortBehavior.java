@@ -1,6 +1,5 @@
 package me.jellysquid.mods.sodium.client.render.chunk.translucent_sorting;
 
-import me.jellysquid.mods.sodium.client.gui.SodiumGameOptions;
 import me.jellysquid.mods.sodium.client.gui.options.TextProvider;
 import net.minecraft.text.Text;
 
