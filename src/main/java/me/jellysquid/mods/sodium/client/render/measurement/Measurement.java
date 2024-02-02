@@ -21,7 +21,7 @@ import java.time.Duration;
  * 
  * test scenario: test world, 1991 events, total 538121 quads, 32 rd, 15 chunk
  * builder threads
- * 
+ *
  * at 128406c9743eab8ec90dfceeac34af6fe932af97
  * (baseline):
  * sort 15-23ns per quad avg, build 230-233ns per quad avg
@@ -66,7 +66,7 @@ public class Measurement {
     public static final boolean DEBUG_ONLY_RENDER_CURRENT_SECTION = false;
     public static final boolean DEBUG_BSP_DIRECT_SORT_COMPARISON = false;
     public static final HeuristicType DEBUG_ONLY_RENDER_TYPE = null;
-    public static final int DEBUG_REDUCE_RENDER_INTERVAL = 15;
+    public static final int DEBUG_REDUCE_RENDER_INTERVAL = 0;
     public static final boolean DEBUG_FREEZE_WORLD = true;
 
     private static final boolean AUTO_RELOAD_WORLD = false;

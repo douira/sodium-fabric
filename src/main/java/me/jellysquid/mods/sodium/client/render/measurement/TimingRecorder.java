@@ -87,17 +87,21 @@ public class TimingRecorder {
         }
 
         int eventCount = this.events.size();
-        Measurement.LOGGER.info("Timings for " + this.name + ":");
-        Measurement.LOGGER.info("min " + minTime +
-                "ns, max " + maxTime +
-                "ns, avg " + (totalTime / eventCount) +
-                "ns, total " + totalTime +
-                "ns (" + (totalTime / 1000000) +
-                "ms). Total size " + totalSize +
-                ", avg size " + (totalSize / eventCount) +
-                ". Avg time per quad " + (totalTime / totalSize) +
-                "ns. Avg quads per event " + (totalSize / eventCount) +
-                ". " + eventCount + " events.");
+        if (eventCount == 0 || totalSize == 0) {
+            Measurement.LOGGER.info("No events or total size 0 for " + this.name);
+        } else {
+            Measurement.LOGGER.info("Timings for " + this.name + ":");
+            Measurement.LOGGER.info("min " + minTime +
+                    "ns, max " + maxTime +
+                    "ns, avg " + (totalTime / eventCount) +
+                    "ns, total " + totalTime +
+                    "ns (" + (totalTime / 1000000) +
+                    "ms). Total size " + totalSize +
+                    ", avg size " + (totalSize / eventCount) +
+                    ". Avg time per quad " + (totalTime / totalSize) +
+                    "ns. Avg quads per event " + (totalSize / eventCount) +
+                    ". " + eventCount + " events.");
+        }
 
         if (PRINT_DATA) {
             Measurement.LOGGER.info(builder.toString());

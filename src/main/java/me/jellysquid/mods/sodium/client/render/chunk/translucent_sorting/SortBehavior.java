@@ -7,11 +7,11 @@ import net.minecraft.text.Text;
 public enum SortBehavior implements TextProvider {
     OFF("options.off", "OFF", SortMode.NONE),
     STATIC("sodium.options.sort_behavior.reduced", "S", SortMode.STATIC),
-    DYNAMIC_DEFER_ALWAYS("sodium.options.defer_sorting.df", "DF", PriorityMode.NONE, DeferMode.ALWAYS),
-    DYNAMIC_DEFER_NEARBY_ONE_FRAME("sodium.options.defer_sorting.n1", "N1", PriorityMode.NEARBY, DeferMode.ONE_FRAME),
-    DYNAMIC_DEFER_NEARBY_ZERO_FRAMES("sodium.options.defer_sorting.n0", "N0", PriorityMode.NEARBY, DeferMode.ZERO_FRAMES),
-    DYNAMIC_DEFER_ALL_ONE_FRAME("sodium.options.defer_sorting.a1", "A1", PriorityMode.ALL, DeferMode.ONE_FRAME),
-    DYNAMIC_DEFER_ALL_ZERO_FRAMES("sodium.options.defer_sorting.a0", "A0", PriorityMode.ALL, DeferMode.ZERO_FRAMES);
+    DYNAMIC_DEFER_ALWAYS("sodium.options.sort_behavior.df", "DF", PriorityMode.NONE, DeferMode.ALWAYS),
+    DYNAMIC_DEFER_NEARBY_ONE_FRAME("sodium.options.sort_behavior.n1", "N1", PriorityMode.NEARBY, DeferMode.ONE_FRAME),
+    DYNAMIC_DEFER_NEARBY_ZERO_FRAMES("sodium.options.sort_behavior.n0", "N0", PriorityMode.NEARBY, DeferMode.ZERO_FRAMES),
+    DYNAMIC_DEFER_ALL_ONE_FRAME("sodium.options.sort_behavior.a1", "A1", PriorityMode.ALL, DeferMode.ONE_FRAME),
+    DYNAMIC_DEFER_ALL_ZERO_FRAMES("sodium.options.sort_behavior.a0", "A0", PriorityMode.ALL, DeferMode.ZERO_FRAMES);
 
     private final Text name;
     private final String shortName;
