@@ -1,7 +1,7 @@
 package me.jellysquid.mods.sodium.client.render.chunk.translucent_sorting;
 
 import me.jellysquid.mods.sodium.client.gui.options.TextProvider;
-import net.minecraft.text.Text;
+import net.minecraft.network.chat.Component;
 
 public enum SortBehavior implements TextProvider {
     OFF("options.off", "OFF", SortMode.NONE),
@@ -12,14 +12,14 @@ public enum SortBehavior implements TextProvider {
     DYNAMIC_DEFER_ALL_ONE_FRAME("sodium.options.sort_behavior.a1", "A1", PriorityMode.ALL, DeferMode.ONE_FRAME),
     DYNAMIC_DEFER_ALL_ZERO_FRAMES("sodium.options.sort_behavior.a0", "A0", PriorityMode.ALL, DeferMode.ZERO_FRAMES);
 
-    private final Text name;
+    private final Component name;
     private final String shortName;
     private final SortMode sortMode;
     private final PriorityMode priorityMode;
     private final DeferMode deferMode;
 
     SortBehavior(String name, String shortName, SortMode sortMode, PriorityMode priorityMode, DeferMode deferMode) {
-        this.name = Text.translatable(name);
+        this.name = Component.translatable(name);
         this.shortName = shortName;
         this.sortMode = sortMode;
         this.priorityMode = priorityMode;
@@ -35,7 +35,7 @@ public enum SortBehavior implements TextProvider {
     }
 
     @Override
-    public Text getLocalizedName() {
+    public Component getLocalizedName() {
         return this.name;
     }
 

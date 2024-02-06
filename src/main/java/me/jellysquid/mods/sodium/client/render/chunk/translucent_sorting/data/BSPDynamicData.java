@@ -13,7 +13,7 @@ import me.jellysquid.mods.sodium.client.render.measurement.HeuristicType;
 import me.jellysquid.mods.sodium.client.render.measurement.Measurement;
 import me.jellysquid.mods.sodium.client.render.measurement.TimingRecorder;
 import me.jellysquid.mods.sodium.client.util.NativeBuffer;
-import net.minecraft.util.math.ChunkSectionPos;
+import net.minecraft.core.SectionPos;
 
 /**
  * Constructs a BSP tree of the quads and sorts them dynamically.
@@ -34,7 +34,7 @@ public class BSPDynamicData extends DynamicData {
     private final BSPNode rootNode;
     private final int generation;
 
-    private BSPDynamicData(ChunkSectionPos sectionPos,
+    private BSPDynamicData(SectionPos sectionPos,
             NativeBuffer buffer, VertexRange range, BSPResult result, Vector3dc cameraPos, int generation) {
         super(sectionPos, buffer, range, result, cameraPos);
         this.rootNode = result.getRootNode();
@@ -56,7 +56,7 @@ public class BSPDynamicData extends DynamicData {
     }
 
     public static BSPDynamicData fromMesh(BuiltSectionMeshParts translucentMesh,
-            CombinedCameraPos cameraPos, TQuad[] quads, ChunkSectionPos sectionPos,
+            CombinedCameraPos cameraPos, TQuad[] quads, SectionPos sectionPos,
             NativeBuffer buffer, TranslucentData oldData) {
         BSPNode oldRoot = null;
         int generation = 0;

@@ -14,7 +14,7 @@ import me.jellysquid.mods.sodium.client.render.chunk.translucent_sorting.SortTyp
 import me.jellysquid.mods.sodium.client.render.chunk.translucent_sorting.data.DynamicData;
 import me.jellysquid.mods.sodium.client.render.chunk.translucent_sorting.data.TopoSortDynamicData;
 import me.jellysquid.mods.sodium.client.render.chunk.translucent_sorting.data.TranslucentData;
-import net.minecraft.util.math.ChunkSectionPos;
+import net.minecraft.core.SectionPos;
 
 /**
  * This class is a central point in translucency sorting. It counts the number
@@ -67,7 +67,7 @@ public class SortTriggering {
 
         void removeSection(long sectionPos, TranslucentData data);
 
-        void integrateSection(SortTriggering ts, ChunkSectionPos sectionPos, T data, CameraMovement movement);
+        void integrateSection(SortTriggering ts, SectionPos sectionPos, T data, CameraMovement movement);
     }
 
     /**
@@ -112,7 +112,7 @@ public class SortTriggering {
         this.gfniTriggerCount++;
     }
 
-    void triggerSectionDirect(ChunkSectionPos sectionPos) {
+    void triggerSectionDirect(SectionPos sectionPos) {
         if (this.isCatchingUp()) {
             this.triggerSectionCatchup(sectionPos.asLong(), true);
             return;
@@ -134,7 +134,7 @@ public class SortTriggering {
         }
     }
 
-    public void applyTriggerChanges(TopoSortDynamicData data, ChunkSectionPos pos, Vector3dc cameraPos) {
+    public void applyTriggerChanges(TopoSortDynamicData data, SectionPos pos, Vector3dc cameraPos) {
         if (data.getAndFlushTurnGFNITriggerOff()) {
             this.gfni.removeSection(pos.asLong(), data);
         }

@@ -16,7 +16,7 @@ import me.jellysquid.mods.sodium.client.render.measurement.Measurement;
 import me.jellysquid.mods.sodium.client.render.measurement.TimingRecorder;
 import me.jellysquid.mods.sodium.client.util.NativeBuffer;
 import me.jellysquid.mods.sodium.client.util.sorting.RadixSort;
-import net.minecraft.util.math.ChunkSectionPos;
+import net.minecraft.core.SectionPos;
 
 /**
  * Performs dynamic topo sorting and falls back to distance sorting as
@@ -55,7 +55,7 @@ public class TopoSortDynamicData extends DynamicData {
     private static final int PATIENT_TOPO_ATTEMPTS = 5;
     private static final int REGULAR_TOPO_ATTEMPTS = 2;
 
-    private TopoSortDynamicData(ChunkSectionPos sectionPos,
+    private TopoSortDynamicData(SectionPos sectionPos,
             NativeBuffer buffer, VertexRange range, TQuad[] quads,
             GeometryPlanes geometryPlanes, Vector3dc cameraPos,
             Object2ReferenceOpenHashMap<Vector3fc, float[]> distancesByNormal) {
@@ -253,7 +253,7 @@ public class TopoSortDynamicData extends DynamicData {
     }
 
     public static TopoSortDynamicData fromMesh(BuiltSectionMeshParts translucentMesh,
-            CombinedCameraPos cameraPos, TQuad[] quads, ChunkSectionPos sectionPos,
+            CombinedCameraPos cameraPos, TQuad[] quads, SectionPos sectionPos,
             GeometryPlanes geometryPlanes,
             NativeBuffer buffer) {
         var distancesByNormal = geometryPlanes.prepareAndGetDistances();

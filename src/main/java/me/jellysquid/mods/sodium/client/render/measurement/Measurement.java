@@ -1,6 +1,6 @@
 package me.jellysquid.mods.sodium.client.render.measurement;
 
-import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.Minecraft;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -109,7 +109,7 @@ public class Measurement {
 
     public void reset() {
         if (DEBUG_FREEZE_WORLD) {
-            MinecraftClient.getInstance().getServer().getTickManager().setFrozen(true);
+            Minecraft.getInstance().level.tickRateManager().setFrozen(true);
         }
 
         if (this.resetState == ResetState.INITIAL) {

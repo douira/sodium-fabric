@@ -31,7 +31,7 @@ import me.jellysquid.mods.sodium.client.render.measurement.HeuristicType;
 import me.jellysquid.mods.sodium.client.render.measurement.Measurement;
 import me.jellysquid.mods.sodium.client.util.NativeBuffer;
 import net.caffeinemc.mods.sodium.api.util.NormI8;
-import net.minecraft.util.math.ChunkSectionPos;
+import net.minecraft.core.SectionPos;
 
 /**
  * The translucent geometry collector collects the data from the renderers and
@@ -63,7 +63,7 @@ import net.minecraft.util.math.ChunkSectionPos;
 public class TranslucentGeometryCollector {
     private static final Logger LOGGER = LogManager.getLogger(TranslucentGeometryCollector.class);
 
-    private final ChunkSectionPos sectionPos;
+    private final SectionPos sectionPos;
 
     // true if there are any unaligned quads
     private boolean hasUnaligned = false;
@@ -107,7 +107,7 @@ public class TranslucentGeometryCollector {
 
     public HeuristicType heuristicType;
 
-    public TranslucentGeometryCollector(ChunkSectionPos sectionPos) {
+    public TranslucentGeometryCollector(SectionPos sectionPos) {
         this.sectionPos = sectionPos;
     }
 
