@@ -4,8 +4,8 @@ import net.caffeinemc.mods.sodium.client.gl.arena.GlBufferSegment;
 import net.caffeinemc.mods.sodium.client.gl.util.VertexRange;
 import net.caffeinemc.mods.sodium.client.model.quad.properties.ModelQuadFacing;
 import net.caffeinemc.mods.sodium.client.render.chunk.region.RenderRegion;
-import java.util.Arrays;
 
+import java.util.Arrays;
 /**
  * The section render data storage stores the gl buffer segments of uploaded
  * data on the gpu. There's one storage object per region. It stores information
