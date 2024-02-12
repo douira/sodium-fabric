@@ -77,15 +77,15 @@ public abstract class BSPNode {
             return true;
         }
 
-        // aligned facing away from eachother
+        // aligned facing away from each other
         else if (facingA == facingB.getOpposite()) {
             return true;
         }
 
         // aligned otherwise mutually invisible
-        else if (!TopoGraphSorting.orthogonalQuadVisibleThrough(quadA, quadB)
-                && !TopoGraphSorting.orthogonalQuadVisibleThrough(quadB, quadA)) {
-            return true;
+        else {
+            return !TopoGraphSorting.orthogonalQuadVisibleThrough(quadA, quadB)
+                    && !TopoGraphSorting.orthogonalQuadVisibleThrough(quadB, quadA);
         }
 
         return false;

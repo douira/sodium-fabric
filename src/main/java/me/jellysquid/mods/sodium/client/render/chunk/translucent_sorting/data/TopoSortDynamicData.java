@@ -2,6 +2,7 @@ package me.jellysquid.mods.sodium.client.render.chunk.translucent_sorting.data;
 
 import java.nio.IntBuffer;
 import java.util.Arrays;
+import java.util.function.IntConsumer;
 
 import org.joml.Vector3dc;
 import org.joml.Vector3fc;
@@ -33,7 +34,7 @@ import net.minecraft.core.SectionPos;
  * this happens, I suspect weird memory behavior or the reuse is not actually
  * that helpful to the sorting algorithm.
  */
-public class TopoSortDynamicData extends DynamicData {
+public class TopoSortDynamicData extends DynamicData implements IntConsumer {
     private static final TimingRecorder topoSortRecorder = new TimingRecorder("Topo sort");
     private static final TimingRecorder distanceSortRecorder = new TimingRecorder("Distance sort");
 
@@ -46,7 +47,8 @@ public class TopoSortDynamicData extends DynamicData {
     private double directTriggerKey = -1;
     private int consecutiveTopoSortFailures = 0;
     private boolean pendingTriggerIsDirect;
-    private Object2ReferenceOpenHashMap<Vector3fc, float[]> distancesByNormal;
+    private final Object2ReferenceOpenHashMap<Vector3fc, float[]> distancesByNormal;
+    private IntBuffer intBuffer;
 
     private static final int MAX_TOPO_SORT_QUADS = 1000;
     private static final int MAX_TOPO_SORT_TIME_NS = 1_000_000;
@@ -174,10 +176,11 @@ public class TopoSortDynamicData extends DynamicData {
         if (this.GFNITrigger && !isDirectTrigger) {
             var sortStart = initial ? 0 : System.nanoTime();
 
+            this.intBuffer = indexBuffer;
             var start = System.nanoTime();
-            var result = TopoGraphSorting.topoSortDepthFirstCyclic(
-                    indexBuffer, this.quads, this.distancesByNormal, cameraPos);
+            var result = TopoGraphSorting.topoGraphSort(this, this.quads, this.distancesByNormal, cameraPos);
             topoSortRecorder.recordNow(this.quads.length, start);
+            this.intBuffer = null;
 
             var sortTime = initial ? 0 : System.nanoTime() - sortStart;
 
@@ -214,7 +217,6 @@ public class TopoSortDynamicData extends DynamicData {
             var start = System.nanoTime();
             distanceSortDirect(indexBuffer, this.quads, cameraPos);
             distanceSortRecorder.recordNow(this.quads.length, start);
-            return;
         }
     }
 
@@ -269,5 +271,10 @@ public class TopoSortDynamicData extends DynamicData {
         dynamicData.sort(cameraPos.getRelativeCameraPos(), false, true);
 
         return dynamicData;
+    }
+
+    @Override
+    public void accept(int value) {
+        TranslucentData.writeQuadVertexIndexes(this.intBuffer, value);
     }
 }
