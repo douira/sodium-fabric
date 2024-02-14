@@ -59,7 +59,6 @@ public class SortTriggering {
      * A map of the number of times each sort type is currently in use.
      */
     private final int[] sortTypeCounters = new int[SortType.values().length];
-    private final long[] sortTypePersistedBytes = new long[SortType.values().length];
 
     private final GFNITriggers gfni = new GFNITriggers();
     private final DirectTriggers direct = new DirectTriggers();
@@ -155,18 +154,12 @@ public class SortTriggering {
         if (oldData != null) {
             var index = oldData.getSortType().ordinal();
             this.sortTypeCounters[index]--;
-            if (oldData instanceof PresentTranslucentData presentData) {
-                this.sortTypePersistedBytes[index] -= TranslucentData.quadCountToIndexBytes(presentData.getLength());
-            }
         }
     }
 
     private void incrementSortTypeCounter(TranslucentData newData) {
         var index = newData.getSortType().ordinal();
         this.sortTypeCounters[index]++;
-        if (newData instanceof PresentTranslucentData presentData) {
-            this.sortTypePersistedBytes[index] += TranslucentData.quadCountToIndexBytes(presentData.getLength());
-        }
     }
 
     /**
@@ -252,8 +245,6 @@ public class SortTriggering {
                     this.sortTypeCounters[SortType.STATIC_TOPO.ordinal()],
                     this.sortTypeCounters[SortType.DYNAMIC.ordinal()],
                     this.direct.getDirectTriggerCount()));
-            list.add("TS Buffers: DYN=%05dKiB".formatted(
-                    this.sortTypePersistedBytes[SortType.DYNAMIC.ordinal()] / 1024));
         }
     }
 }

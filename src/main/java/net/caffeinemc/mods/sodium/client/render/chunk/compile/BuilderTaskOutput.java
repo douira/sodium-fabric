@@ -5,24 +5,27 @@ import net.caffeinemc.mods.sodium.client.render.chunk.RenderSection;
 public abstract class BuilderTaskOutput {
     public final RenderSection render;
     public final int submitTime;
-    private boolean fullyDeleted;
+    private boolean disposed;
 
     public BuilderTaskOutput(RenderSection render, int buildTime) {
         this.render = render;
         this.submitTime = buildTime;
     }
 
-    public void deleteFully() {
-        this.fullyDeleted = true;
-        this.deleteAfterUpload();
+    public void destroy() {
+        this.disposed = true;
+        this.notifyOutputProcessed();
     }
 
-    public void deleteAfterUploadSafe() {
-        if (!this.fullyDeleted) {
-            this.deleteAfterUpload();
+    /**
+     * This method is called after the contents of this output have been uploaded to the GPU. It internally calls {@link #notifyOutputProcessed()} because sometimes this is called even after the output has already been disposed.
+     */
+    public void notifyOutputProcessedSafe() {
+        if (!this.disposed) {
+            this.notifyOutputProcessed();
         }
     }
 
-    protected void deleteAfterUpload() {
+    protected void notifyOutputProcessed() {
     }
 }

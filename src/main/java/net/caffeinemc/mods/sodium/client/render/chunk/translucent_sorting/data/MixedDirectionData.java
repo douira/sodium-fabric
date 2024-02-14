@@ -15,6 +15,6 @@ public abstract class MixedDirectionData extends PresentTranslucentData {
 
     @Override
     public VertexRange[] getVertexRanges() {
-        return ranges;
+        return this.ranges;
     }
 }

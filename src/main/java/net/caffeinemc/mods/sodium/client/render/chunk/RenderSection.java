@@ -121,7 +121,7 @@ public class RenderSection {
             throw new IllegalArgumentException("new translucentData cannot be null");
         }
         if (this.translucentData != null && this.translucentData != translucentData) {
-            this.translucentData.delete();
+            this.translucentData.destroy();
         }
         this.translucentData = translucentData;
     }
@@ -137,7 +137,7 @@ public class RenderSection {
             this.taskCancellationToken = null;
         }
         if (this.translucentData != null) {
-            this.translucentData.delete();
+            this.translucentData.destroy();
         }
 
         this.clearRenderState();

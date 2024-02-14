@@ -30,11 +30,11 @@ public abstract class TranslucentData {
 
     public abstract SortType getSortType();
 
-    public boolean retainAfterUpload() {
-        return false;
+    public void notifyAfterUpload() {
+        this.destroy();
     }
 
-    public void delete() {
+    public void destroy() {
     }
 
     public void sortOnTrigger(Vector3fc cameraPos) {

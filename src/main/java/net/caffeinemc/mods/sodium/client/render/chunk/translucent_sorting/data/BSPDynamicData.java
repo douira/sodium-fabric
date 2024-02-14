@@ -51,7 +51,7 @@ public class BSPDynamicData extends DynamicData {
     private void sort(Vector3fc cameraPos) {
         this.unsetReuseUploadedData();
 
-        this.rootNode.collectSortedQuads(getBuffer(), cameraPos);
+        this.rootNode.collectSortedQuads(this.ensureAndGetBuffer(), cameraPos);
     }
 
     public static BSPDynamicData fromMesh(BuiltSectionMeshParts translucentMesh,

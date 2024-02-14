@@ -12,23 +12,33 @@ public abstract class PresentTranslucentData extends TranslucentData {
     private NativeBuffer buffer;
     private boolean reuseUploadedData;
     private int quadHash;
-    private int length;
+    private final int length;
+    private final int byteLength;
 
     PresentTranslucentData(SectionPos sectionPos, NativeBuffer buffer) {
         super(sectionPos);
         this.buffer = buffer;
-        this.length = TranslucentData.indexBytesToQuadCount(buffer.getLength());
+        this.byteLength = buffer.getLength();
+        this.length = TranslucentData.indexBytesToQuadCount(this.byteLength);
     }
 
     public abstract VertexRange[] getVertexRanges();
 
     @Override
-    public void delete() {
-        super.delete();
+    public void destroy() {
+        super.destroy();
+        this.deleteBuffer();
+    }
+
+    void deleteBuffer() {
         if (this.buffer != null) {
             this.buffer.free();
             this.buffer = null;
         }
+    }
+
+    public void createSizedBuffer() {
+        this.buffer = nativeBufferForQuads(this.length);
     }
 
     public void setQuadHash(int hash) {
@@ -41,6 +51,10 @@ public abstract class PresentTranslucentData extends TranslucentData {
 
     public int getLength() {
         return this.length;
+    }
+
+    public int getByteLength() {
+        return this.byteLength;
     }
 
     public NativeBuffer getBuffer() {
@@ -59,8 +73,12 @@ public abstract class PresentTranslucentData extends TranslucentData {
         this.reuseUploadedData = false;
     }
 
+    public static NativeBuffer nativeBufferForQuads(int quadCount) {
+        return new NativeBuffer(TranslucentData.quadCountToIndexBytes(quadCount));
+    }
+
     public static NativeBuffer nativeBufferForQuads(TQuad[] quads) {
-        return new NativeBuffer(TranslucentData.quadCountToIndexBytes(quads.length));
+        return nativeBufferForQuads(quads.length);
     }
 
     public static NativeBuffer nativeBufferForQuads(NativeBuffer existing, TQuad[] quads) {

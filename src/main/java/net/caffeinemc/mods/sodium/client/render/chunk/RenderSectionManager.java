@@ -308,7 +308,7 @@ public class RenderSectionManager {
         this.needsGraphUpdate = this.needsGraphUpdate || touchedSectionInfo;
 
         for (var result : results) {
-            result.deleteAfterUploadSafe();
+            result.notifyOutputProcessedSafe();
         }
     }
 
@@ -366,7 +366,7 @@ public class RenderSectionManager {
             // when outdated or duplicate outputs are thrown out, make sure to delete their
             // buffers to avoid memory leaks
             if (output.render.isDisposed() || output.render.getLastUploadFrame() > output.submitTime) {
-                output.deleteFully();
+                output.destroy();
                 continue;
             }
 
@@ -376,7 +376,7 @@ public class RenderSectionManager {
             if (previous == null || previous.submitTime < output.submitTime) {
                 map.put(render, output);
                 if (previous != null) {
-                    previous.deleteFully();
+                    previous.destroy();
                 }
             }
         }
@@ -547,7 +547,7 @@ public class RenderSectionManager {
         this.builder.shutdown(); // stop all the workers, and cancel any tasks
 
         for (var result : this.collectChunkBuildResults()) {
-            result.deleteFully(); // delete resources for any pending tasks (including those that were cancelled)
+            result.destroy(); // delete resources for any pending tasks (including those that were cancelled)
         }
 
         for (var section : this.sectionByPosition.values()) {

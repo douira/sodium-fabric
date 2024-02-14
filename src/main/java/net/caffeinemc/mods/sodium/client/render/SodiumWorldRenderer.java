@@ -64,6 +64,7 @@ public class SodiumWorldRenderer {
     private boolean useEntityCulling;
 
     private RenderSectionManager renderSectionManager;
+    public final CachedResourceManager cachedResourceManager = new CachedResourceManager();
     public final Measurement measurement = new Measurement();
 
     /**
@@ -228,6 +229,9 @@ public class SodiumWorldRenderer {
         profiler.popPush("chunk_upload");
 
         this.renderSectionManager.uploadChunks();
+
+        // TODO: attempt running this off-thread
+        this.cachedResourceManager.evictOutdatedResources();
 
         profiler.popPush("chunk_render_tick");
 
@@ -491,7 +495,9 @@ public class SodiumWorldRenderer {
     }
 
     public Collection<String> getDebugStrings() {
-        return this.renderSectionManager.getDebugStrings();
+        var strings = this.renderSectionManager.getDebugStrings();
+        this.cachedResourceManager.addDebugStrings(strings);
+        return strings;
     }
 
     public boolean isSectionReady(int x, int y, int z) {

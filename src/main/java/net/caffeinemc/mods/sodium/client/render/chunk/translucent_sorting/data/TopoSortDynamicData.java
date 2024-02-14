@@ -166,7 +166,7 @@ public class TopoSortDynamicData extends DynamicData implements IntConsumer {
         this.unsetReuseUploadedData();
 
         // uses a topo sort or a distance sort depending on what is enabled
-        IntBuffer indexBuffer = this.getBuffer().getDirectBuffer().asIntBuffer();
+        IntBuffer indexBuffer = this.ensureAndGetBuffer().getDirectBuffer().asIntBuffer();
 
         if (this.quads.length > MAX_TOPO_SORT_QUADS) {
             this.turnDirectTriggerOn();

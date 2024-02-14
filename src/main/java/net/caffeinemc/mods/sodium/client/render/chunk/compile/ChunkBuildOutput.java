@@ -42,12 +42,12 @@ public class ChunkBuildOutput extends BuilderTaskOutput implements OutputWithInd
     }
 
     @Override
-    public void deleteAfterUpload() {
-        super.deleteAfterUpload();
+    public void notifyOutputProcessed() {
+        super.notifyOutputProcessed();
 
         // delete translucent data if it's not persisted for dynamic sorting
-        if (this.translucentData != null && !this.translucentData.retainAfterUpload()) {
-            this.translucentData.delete();
+        if (this.translucentData != null) {
+            this.translucentData.notifyAfterUpload();
         }
 
         for (BuiltSectionMeshParts data : this.meshes.values()) {
@@ -56,10 +56,10 @@ public class ChunkBuildOutput extends BuilderTaskOutput implements OutputWithInd
     }
 
     @Override
-    public void deleteFully() {
-        super.deleteFully();
+    public void destroy() {
+        super.destroy();
         if (this.translucentData != null) {
-            this.translucentData.delete();
+            this.translucentData.destroy();
         }
     }
 }
