@@ -14,18 +14,17 @@ public abstract class BuilderTaskOutput {
 
     public void destroy() {
         this.disposed = true;
-        this.notifyOutputProcessed();
     }
 
     /**
-     * This method is called after the contents of this output have been uploaded to the GPU. It internally calls {@link #notifyOutputProcessed()} because sometimes this is called even after the output has already been disposed.
+     * This method is called after the contents of this output have been uploaded to the GPU. It internally calls {@link #softDestroy()} because sometimes this is called even after the output has already been destroyed.
      */
-    public void notifyOutputProcessedSafe() {
+    public void softDestroySafe() {
         if (!this.disposed) {
-            this.notifyOutputProcessed();
+            this.softDestroy();
         }
     }
 
-    protected void notifyOutputProcessed() {
+    protected void softDestroy() {
     }
 }

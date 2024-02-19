@@ -9,7 +9,6 @@ import net.caffeinemc.mods.sodium.client.SodiumClientMod;
 import net.caffeinemc.mods.sodium.client.model.quad.properties.ModelQuadFacing;
 import net.caffeinemc.mods.sodium.client.render.chunk.compile.ChunkBuildOutput;
 import net.caffeinemc.mods.sodium.client.render.chunk.compile.pipeline.DefaultFluidRenderer;
-import net.caffeinemc.mods.sodium.client.render.chunk.compile.pipeline.FluidRenderer;
 import net.caffeinemc.mods.sodium.client.render.chunk.data.BuiltSectionMeshParts;
 import net.caffeinemc.mods.sodium.client.render.chunk.translucent_sorting.bsp_tree.BSPBuildFailureException;
 import net.caffeinemc.mods.sodium.client.render.chunk.translucent_sorting.data.*;
@@ -17,7 +16,6 @@ import net.caffeinemc.mods.sodium.client.render.chunk.translucent_sorting.trigge
 import net.caffeinemc.mods.sodium.client.render.chunk.translucent_sorting.trigger.SortTriggering;
 import net.caffeinemc.mods.sodium.client.render.chunk.vertex.format.ChunkVertexEncoder;
 import net.caffeinemc.mods.sodium.client.util.NativeBuffer;
-import net.caffeinemc.mods.sodium.api.util.NormI8;
 import net.minecraft.core.SectionPos;
 import org.joml.Vector3f;
 
@@ -480,7 +478,7 @@ public class TranslucentGeometryCollector {
     private TranslucentData makeNewTranslucentData(BuiltSectionMeshParts translucentMesh, CombinedCameraPos cameraPos,
             TranslucentData oldData) {
         if (this.sortType == SortType.NONE) {
-            return AnyOrderData.fromMesh(translucentMesh, this.quads, this.sectionPos, null);
+            return AnyOrderData.fromMesh(translucentMesh, this.quads, this.sectionPos);
         }
 
         if (this.sortType == SortType.STATIC_NORMAL_RELATIVE) {
@@ -490,9 +488,8 @@ public class TranslucentGeometryCollector {
 
         // from this point on we know the estimated sort type requires direction mixing
         // (no backface culling) and all vertices are in the UNASSIGNED direction.
-        NativeBuffer buffer = PresentTranslucentData.nativeBufferForQuads(this.quads);
         if (this.sortType == SortType.STATIC_TOPO) {
-            var result = StaticTopoAcyclicData.fromMesh(translucentMesh, this.quads, this.sectionPos, buffer);
+            var result = StaticTopoData.fromMesh(translucentMesh, this.quads, this.sectionPos);
             if (result != null) {
                 return result;
             }
@@ -503,26 +500,25 @@ public class TranslucentGeometryCollector {
         this.sortType = filterSortType(this.sortType);
 
         if (this.sortType == SortType.NONE) {
-            return AnyOrderData.fromMesh(translucentMesh, this.quads, this.sectionPos, buffer);
+            return AnyOrderData.fromMesh(translucentMesh, this.quads, this.sectionPos);
         }
 
         if (this.sortType == SortType.DYNAMIC) {
             if (!Measurement.DEBUG_NO_BSP) {
                 try {
-                    return BSPDynamicData.fromMesh(
-                        translucentMesh, cameraPos, this.quads, this.sectionPos,
-                        buffer, oldData);
+                    return DynamicBSPData.fromMesh(
+                        translucentMesh, cameraPos, this.quads, this.sectionPos, oldData);
                 } catch (BSPBuildFailureException e) {
                     var geometryPlanes = GeometryPlanes.fromQuadLists(this.sectionPos, this.quads);
-                    return TopoSortDynamicData.fromMesh(
+                    return DynamicTopoData.fromMesh(
                         translucentMesh, cameraPos, this.quads, this.sectionPos,
-                        geometryPlanes, buffer);
+                        geometryPlanes);
                 }
             } else {
                 var geometryPlanes = GeometryPlanes.fromQuadLists(this.sectionPos, this.quads);
-                return TopoSortDynamicData.fromMesh(
+                return DynamicTopoData.fromMesh(
                         translucentMesh, cameraPos, this.quads, this.sectionPos,
-                        geometryPlanes, buffer);
+                        geometryPlanes);
             }
         }
 
@@ -558,18 +554,16 @@ public class TranslucentGeometryCollector {
             // for the NONE sort type the ranges need to be the same, the actual geometry
             // doesn't matter
             if (this.sortType == SortType.NONE && oldData instanceof AnyOrderData oldAnyData
-                    && oldAnyData.getLength() == this.quads.length
+                    && oldAnyData.getQuadCount() == this.quads.length
                     && Arrays.equals(oldAnyData.getVertexRanges(), translucentMesh.getVertexRanges())) {
-                oldAnyData.setReuseUploadedData();
                 return oldAnyData;
             }
 
             // for the other sort types the geometry needs to be the same (checked with
             // length and hash)
             if (oldData instanceof PresentTranslucentData oldPresentData) {
-                if (oldPresentData.getLength() == this.quads.length
+                if (oldPresentData.getQuadCount() == this.quads.length
                         && oldPresentData.getQuadHash() == getQuadHash(this.quads)) {
-                    oldPresentData.setReuseUploadedData();
                     return oldPresentData;
                 }
             }

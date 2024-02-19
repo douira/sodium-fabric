@@ -6,6 +6,7 @@ import com.mojang.blaze3d.vertex.SheetedDecalTextureGenerator;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.blaze3d.vertex.VertexMultiConsumer;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
+import net.caffeinemc.mods.sodium.client.util.BufferCache;
 import net.caffeinemc.mods.sodium.client.SodiumClientMod;
 import net.caffeinemc.mods.sodium.client.gl.device.CommandList;
 import net.caffeinemc.mods.sodium.client.gl.device.RenderDevice;
@@ -46,8 +47,6 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.SortedSet;
 
-import org.joml.Vector3d;
-
 /**
  * Provides an extension to vanilla's {@link LevelRenderer}.
  */
@@ -64,7 +63,7 @@ public class SodiumWorldRenderer {
     private boolean useEntityCulling;
 
     private RenderSectionManager renderSectionManager;
-    public final CachedResourceManager cachedResourceManager = new CachedResourceManager();
+    public final BufferCache bufferCache = new BufferCache();
     public final Measurement measurement = new Measurement();
 
     /**
@@ -231,7 +230,7 @@ public class SodiumWorldRenderer {
         this.renderSectionManager.uploadChunks();
 
         // TODO: attempt running this off-thread
-        this.cachedResourceManager.evictOutdatedResources();
+        this.bufferCache.evictOutdatedResources();
 
         profiler.popPush("chunk_render_tick");
 
@@ -496,7 +495,7 @@ public class SodiumWorldRenderer {
 
     public Collection<String> getDebugStrings() {
         var strings = this.renderSectionManager.getDebugStrings();
-        this.cachedResourceManager.addDebugStrings(strings);
+        this.bufferCache.addDebugStrings(strings);
         return strings;
     }
 

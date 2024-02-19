@@ -2,10 +2,10 @@ package net.caffeinemc.mods.sodium.client.render.chunk.compile;
 
 import net.caffeinemc.mods.sodium.client.render.chunk.RenderSection;
 import net.caffeinemc.mods.sodium.client.render.chunk.terrain.TerrainRenderPass;
-import net.caffeinemc.mods.sodium.client.render.chunk.translucent_sorting.data.PresentTranslucentData;
 import net.caffeinemc.mods.sodium.client.render.chunk.translucent_sorting.data.TranslucentData;
 import net.caffeinemc.mods.sodium.client.render.chunk.data.BuiltSectionMeshParts;
 import net.caffeinemc.mods.sodium.client.render.chunk.data.BuiltSectionInfo;
+import net.caffeinemc.mods.sodium.client.util.BufferCache;
 
 import java.util.Map;
 
@@ -15,7 +15,7 @@ import java.util.Map;
  * finishing its work and not before the result is processed, the result will
  * instead be discarded.
  */
-public class ChunkBuildOutput extends BuilderTaskOutput implements OutputWithIndexData {
+public class ChunkBuildOutput extends ChunkSortOutput {
     public final BuiltSectionInfo info;
     public final TranslucentData translucentData;
     public final Map<TerrainRenderPass, BuiltSectionMeshParts> meshes;
@@ -34,32 +34,20 @@ public class ChunkBuildOutput extends BuilderTaskOutput implements OutputWithInd
     }
 
     @Override
-    public PresentTranslucentData getTranslucentData() {
-        if (this.translucentData instanceof PresentTranslucentData present) {
-            return present;
-        }
-        return null;
-    }
-
-    @Override
-    public void notifyOutputProcessed() {
-        super.notifyOutputProcessed();
-
-        // delete translucent data if it's not persisted for dynamic sorting
-        if (this.translucentData != null) {
-            this.translucentData.notifyAfterUpload();
-        }
-
-        for (BuiltSectionMeshParts data : this.meshes.values()) {
-            data.getVertexData().free();
-        }
-    }
-
-    @Override
     public void destroy() {
         super.destroy();
-        if (this.translucentData != null) {
-            this.translucentData.destroy();
+
+        for (BuiltSectionMeshParts data : this.meshes.values()) {
+            BufferCache.instance().freeBufferInUse(data.getVertexData());
+        }
+    }
+
+    @Override
+    public void softDestroy() {
+        super.softDestroy();
+
+        for (BuiltSectionMeshParts data : this.meshes.values()) {
+            BufferCache.instance().release(data.getVertexData());
         }
     }
 }

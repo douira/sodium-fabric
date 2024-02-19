@@ -8,6 +8,7 @@ import it.unimi.dsi.fastutil.objects.Reference2ReferenceLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet;
 import it.unimi.dsi.fastutil.objects.ReferenceSet;
 import it.unimi.dsi.fastutil.objects.ReferenceSets;
+import net.caffeinemc.mods.sodium.client.render.chunk.translucent_sorting.data.DynamicTopoData;
 import net.caffeinemc.mods.sodium.client.render.measurement.Counter;
 import net.caffeinemc.mods.sodium.client.render.measurement.Measurement;
 import net.caffeinemc.mods.sodium.client.SodiumClientMod;
@@ -34,7 +35,6 @@ import net.caffeinemc.mods.sodium.client.render.chunk.terrain.TerrainRenderPass;
 import net.caffeinemc.mods.sodium.client.render.chunk.translucent_sorting.SortBehavior.DeferMode;
 import net.caffeinemc.mods.sodium.client.render.chunk.translucent_sorting.SortBehavior.PriorityMode;
 import net.caffeinemc.mods.sodium.client.render.chunk.translucent_sorting.data.NoData;
-import net.caffeinemc.mods.sodium.client.render.chunk.translucent_sorting.data.TopoSortDynamicData;
 import net.caffeinemc.mods.sodium.client.render.chunk.translucent_sorting.data.TranslucentData;
 import net.caffeinemc.mods.sodium.client.render.chunk.translucent_sorting.trigger.CameraMovement;
 import net.caffeinemc.mods.sodium.client.render.chunk.translucent_sorting.trigger.SortTriggering;
@@ -308,7 +308,7 @@ public class RenderSectionManager {
         this.needsGraphUpdate = this.needsGraphUpdate || touchedSectionInfo;
 
         for (var result : results) {
-            result.notifyOutputProcessedSafe();
+            result.softDestroySafe();
         }
     }
 
@@ -330,9 +330,10 @@ public class RenderSectionManager {
                     // a rebuild always generates new translucent data which means applyTriggerChanges isn't necessary
                     result.render.setTranslucentData(chunkBuildOutput.translucentData);
                 }
-            } else if (result instanceof ChunkSortOutput chunkSortOutput
-                    && chunkSortOutput.dynamicData instanceof TopoSortDynamicData data) {
-                this.sortTriggering.applyTriggerChanges(data, result.render.getPosition(), this.cameraPosition);
+            } else if (result instanceof ChunkSortOutput sortOutput
+                    && sortOutput.getTopoSorter() != null
+                    && result.render.getTranslucentData() instanceof DynamicTopoData data) {
+                this.sortTriggering.applyTriggerChanges(data, sortOutput.getTopoSorter(), result.render.getPosition(), this.cameraPosition);
             }
 
             var job = result.render.getTaskCancellationToken();
@@ -366,7 +367,7 @@ public class RenderSectionManager {
             // when outdated or duplicate outputs are thrown out, make sure to delete their
             // buffers to avoid memory leaks
             if (output.render.isDisposed() || output.render.getLastUploadFrame() > output.submitTime) {
-                output.destroy();
+                output.softDestroySafe();
                 continue;
             }
 
@@ -376,7 +377,7 @@ public class RenderSectionManager {
             if (previous == null || previous.submitTime < output.submitTime) {
                 map.put(render, output);
                 if (previous != null) {
-                    previous.destroy();
+                    previous.softDestroySafe();
                 }
             }
         }

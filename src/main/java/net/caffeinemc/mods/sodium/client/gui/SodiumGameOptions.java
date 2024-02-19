@@ -50,7 +50,7 @@ public class SodiumGameOptions {
     }
 
     public static class AdvancedSettings {
-        public boolean enableMemoryTracing = false;
+        public boolean enableMemoryTracing = true;
         public boolean useAdvancedStagingBuffers = true;
 
         public int cpuRenderAheadLimit = 3;

@@ -30,13 +30,6 @@ public abstract class TranslucentData {
 
     public abstract SortType getSortType();
 
-    public void notifyAfterUpload() {
-        this.destroy();
-    }
-
-    public void destroy() {
-    }
-
     public void sortOnTrigger(Vector3fc cameraPos) {
         // no-op for other translucent data than dynamic
     }

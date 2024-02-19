@@ -86,7 +86,7 @@ public class NativeBuffer {
     }
 
     private static StackTraceElement[] getStackTrace() {
-        return SodiumClientMod.options().advanced.enableMemoryTracing ? Thread.currentThread()
+        return true ? Thread.currentThread()
                 .getStackTrace() : null;
     }
 

@@ -15,14 +15,26 @@ import java.util.function.IntConsumer;
  * possible to sort without dynamic triggering, meaning the sort order never
  * needs to change.
  */
-public class StaticTopoAcyclicData extends MixedDirectionData {
-    StaticTopoAcyclicData(SectionPos sectionPos, NativeBuffer buffer, VertexRange range) {
-        super(sectionPos, buffer, range);
+public class StaticTopoData extends MixedDirectionData {
+    private Sorter sorterOnce;
+
+    StaticTopoData(SectionPos sectionPos, VertexRange range, int quadCount) {
+        super(sectionPos, range, quadCount);
     }
 
     @Override
     public SortType getSortType() {
         return SortType.STATIC_TOPO;
+    }
+
+    @Override
+    public Sorter getSorter() {
+        var sorter = this.sorterOnce;
+        if (sorter == null) {
+            throw new IllegalStateException("Sorter already used!");
+        }
+        this.sorterOnce = null;
+        return sorter;
     }
 
     private record QuadIndexConsumerIntoBuffer(IntBuffer buffer) implements IntConsumer {
@@ -32,16 +44,17 @@ public class StaticTopoAcyclicData extends MixedDirectionData {
         }
     }
 
-
-    public static StaticTopoAcyclicData fromMesh(BuiltSectionMeshParts translucentMesh,
-            TQuad[] quads, SectionPos sectionPos, NativeBuffer buffer) {
+    public static StaticTopoData fromMesh(BuiltSectionMeshParts translucentMesh, TQuad[] quads, SectionPos sectionPos) {
         VertexRange range = TranslucentData.getUnassignedVertexRange(translucentMesh);
-        var indexWriter = new QuadIndexConsumerIntoBuffer(buffer.getDirectBuffer().asIntBuffer());
+        var sorter = new StaticSorter(quads.length);
+        var indexWriter = new QuadIndexConsumerIntoBuffer(sorter.getIntBuffer());
 
         if (!TopoGraphSorting.topoGraphSort(indexWriter, quads, null, null)) {
             return null;
         }
 
-        return new StaticTopoAcyclicData(sectionPos, buffer, range);
+        var staticTopoData = new StaticTopoData(sectionPos, range, quads.length);
+        staticTopoData.sorterOnce = sorter;
+        return staticTopoData;
     }
 }
