@@ -1,6 +1,7 @@
 package net.caffeinemc.mods.sodium.client.util;
 
 import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
+import it.unimi.dsi.fastutil.longs.Long2ReferenceMaps;
 import it.unimi.dsi.fastutil.longs.Long2ReferenceRBTreeMap;
 import net.caffeinemc.mods.sodium.client.render.SodiumWorldRenderer;
 
@@ -14,12 +15,16 @@ import java.util.concurrent.atomic.AtomicLong;
  * - each sections gets to stay a minimum time in the cache
  * - the maximum time is long if there is low memory usage
  * - the eviction time interpolates between the minimum and infinity based on the memory usage
+ * <p>
+ * TODO: handle key collision in timedFreeMap, never seems to actually happen though
+ * TODO: clear items from sizeToCached to avoid wasting memory if the queue for a particular queue is never iterated again? (removing each one when it gets evicted is slow as the queues are linked lists) maybe spend constant effort each time clearing out the queues for the sizes of buffers that were just evicted
+ * TODO: very rarely a mesh buffer seems to leak, this might actually be a failure of the cache and not the user of the cache. If this never happens with index buffers though, that would point to this issue being external to the cache.
  */
 public class BufferCache {
     private static final long MINIMUM_RETENTION_TIME = 5_000_000L; // 5ms
-    private static final long MAXIMUM_RETENTION_TIME = 2_000_000_000L; // 20s TODO: change back to 20s
+    private static final long MAXIMUM_RETENTION_TIME = 20_000_000_000L; // 20s
     private static final long MAX_TARGET_MEMORY_USAGE = 100_000_000L; // 100MB
-    private static final double MEMORY_USAGE_FACTOR_EXPONENT = 1d / 4;
+    private static final double MEMORY_USAGE_FACTOR_EXPONENT = 0.25d;
 
     // totalSize and timedFreeMap are updated by the main thread using the removeFromMap and addToMap queues.
     // removeFromMap, addToMap, and sizeToCached can be concurrently updated by any thread.
@@ -48,15 +53,14 @@ public class BufferCache {
         this.addToMap = new ConcurrentLinkedQueue<>();
         while (!addToMap.isEmpty()) {
             var resource = addToMap.poll();
-            if (!resource.isInUse()) {
+            if (resource.isNotInUse()) {
                 this.timedFreeMap.put(resource.getLastUse(), resource);
             }
         }
 
         // evict outdated resources
         var evictOlderThan = getEvictOlderThan(now);
-        var toEvict = this.timedFreeMap.headMap(evictOlderThan);
-        var toEvictIt = toEvict.values().iterator();
+        var toEvictIt = this.timedFreeMap.headMap(evictOlderThan).values().iterator();
         while (toEvictIt.hasNext()) {
             var buffer = toEvictIt.next();
             toEvictIt.remove();
@@ -134,7 +138,7 @@ public class BufferCache {
     public void freeBufferInUse(CachedNativeBuffer buffer) {
         // only valid for buffers that are currently in use
         // as it doesn't remove them from the cache if they aren't in use
-        if (!buffer.isInUse()) {
+        if (buffer.isNotInUse()) {
             this.removeCachedSize(buffer);
         }
         buffer.free();
@@ -153,6 +157,6 @@ public class BufferCache {
     }
 
     public void addDebugStrings(Collection<String> list) {
-        list.add("Buffer Cache: %05dMB (%05d)".formatted(this.cachedSize.get() / 1_000_000, this.cachedCount.get()));
+        list.add("Buffer Cache: %04dMB (%03d)".formatted(this.cachedSize.get() / 1_000_000, this.cachedCount.get()));
     }
 }

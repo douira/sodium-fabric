@@ -4,6 +4,7 @@ import net.caffeinemc.mods.sodium.client.gl.util.VertexRange;
 import net.caffeinemc.mods.sodium.client.render.chunk.data.BuiltSectionMeshParts;
 import net.caffeinemc.mods.sodium.client.render.chunk.translucent_sorting.SortType;
 import net.caffeinemc.mods.sodium.client.render.chunk.translucent_sorting.TQuad;
+import net.caffeinemc.mods.sodium.client.util.BufferCache;
 import net.caffeinemc.mods.sodium.client.util.NativeBuffer;
 import net.minecraft.core.SectionPos;
 
@@ -50,6 +51,7 @@ public class StaticTopoData extends MixedDirectionData {
         var indexWriter = new QuadIndexConsumerIntoBuffer(sorter.getIntBuffer());
 
         if (!TopoGraphSorting.topoGraphSort(indexWriter, quads, null, null)) {
+            BufferCache.instance().release(sorter.getIndexBuffer());
             return null;
         }
 

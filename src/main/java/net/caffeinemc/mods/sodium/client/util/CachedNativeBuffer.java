@@ -34,8 +34,8 @@ public class CachedNativeBuffer extends NativeBuffer {
         super.free();
     }
 
-    boolean isInUse() {
-        return this.inUse.get();
+    boolean isNotInUse() {
+        return !this.inUse.get();
     }
 
     long getLastUse() {
