@@ -16,21 +16,20 @@ import java.util.concurrent.atomic.AtomicLong;
  * - the maximum time is long if there is low memory usage
  * - the eviction time interpolates between the minimum and infinity based on the memory usage
  * <p>
- * TODO: handle key collision in timedFreeMap, never seems to actually happen though
  * TODO: clear items from sizeToCached to avoid wasting memory if the queue for a particular queue is never iterated again? (removing each one when it gets evicted is slow as the queues are linked lists) maybe spend constant effort each time clearing out the queues for the sizes of buffers that were just evicted
- * TODO: very rarely a mesh buffer seems to leak, this might actually be a failure of the cache and not the user of the cache. If this never happens with index buffers though, that would point to this issue being external to the cache.
+ * TODO: rarely a mesh buffer seems to leak, this might actually be a failure of the cache and not the user of the cache. If this never happens with index buffers though, that would point to this issue being external to the cache.
  */
 public class BufferCache {
     private static final long MINIMUM_RETENTION_TIME = 5_000_000L; // 5ms
     private static final long MAXIMUM_RETENTION_TIME = 20_000_000_000L; // 20s
-    private static final long MAX_TARGET_MEMORY_USAGE = 100_000_000L; // 100MB
+    private static final long MAX_TARGET_MEMORY_USAGE = 200_000_000L; // 200MB
     private static final double MEMORY_USAGE_FACTOR_EXPONENT = 0.25d;
 
     // totalSize and timedFreeMap are updated by the main thread using the removeFromMap and addToMap queues.
     // removeFromMap, addToMap, and sizeToCached can be concurrently updated by any thread.
     // sizeToCached is always up-to-date and is updated concurrently.
     private final Long2ReferenceRBTreeMap<CachedNativeBuffer> timedFreeMap = new Long2ReferenceRBTreeMap<>();
-    private volatile ConcurrentLinkedQueue<CachedNativeBuffer> addToMap = new ConcurrentLinkedQueue<>();
+    private final ConcurrentLinkedQueue<CachedNativeBuffer> addToMap = new ConcurrentLinkedQueue<>();
     private final Int2ReferenceOpenHashMap<ConcurrentLinkedQueue<CachedNativeBuffer>> sizeToCached = new Int2ReferenceOpenHashMap<>();
     private final AtomicLong cachedSize = new AtomicLong();
     private final AtomicInteger cachedCount = new AtomicInteger();
@@ -48,13 +47,16 @@ public class BufferCache {
     public void evictOutdatedResources() {
         long now = System.nanoTime();
 
-        // mitigate modifications while iterating by swapping queues
-        var addToMap = this.addToMap;
-        this.addToMap = new ConcurrentLinkedQueue<>();
-        while (!addToMap.isEmpty()) {
-            var resource = addToMap.poll();
+        // flush the add queue to the timed free map
+        CachedNativeBuffer resource;
+        while ((resource = this.addToMap.poll()) != null) {
             if (resource.isNotInUse()) {
-                this.timedFreeMap.put(resource.getLastUse(), resource);
+                var key = resource.getLastUse();
+
+                // resolve key collisions by iterating backwards (only means the buffer would get cleared earlier)
+                while (this.timedFreeMap.putIfAbsent(key, resource) != null) {
+                    key--;
+                }
             }
         }
 
@@ -71,6 +73,8 @@ public class BufferCache {
                 buffer.free();
             }
         }
+
+        // TODO: clean queues and remove empty ones
     }
 
     private long getEvictOlderThan(long now) {
@@ -157,6 +161,6 @@ public class BufferCache {
     }
 
     public void addDebugStrings(Collection<String> list) {
-        list.add("Buffer Cache: %04dMB (%03d)".formatted(this.cachedSize.get() / 1_000_000, this.cachedCount.get()));
+        list.add("Buffer Cache: %04dMB (%04d)".formatted(this.cachedSize.get() / 1_000_000, this.cachedCount.get()));
     }
 }

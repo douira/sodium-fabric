@@ -50,6 +50,7 @@ public class ChunkSortOutput extends BuilderTaskOutput implements SortData {
     @Override
     public void destroy() {
         super.destroy();
+
         if (this.indexBuffer != null) {
             BufferCache.instance().freeBufferInUse(this.indexBuffer);
         }
@@ -58,6 +59,7 @@ public class ChunkSortOutput extends BuilderTaskOutput implements SortData {
     @Override
     protected void softDestroy() {
         super.softDestroy();
+
         if (this.indexBuffer != null) {
             BufferCache.instance().release(this.indexBuffer);
         }

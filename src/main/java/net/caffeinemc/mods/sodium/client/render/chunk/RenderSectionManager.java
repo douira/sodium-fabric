@@ -364,10 +364,8 @@ public class RenderSectionManager {
         var map = new Reference2ReferenceLinkedOpenHashMap<RenderSection, BuilderTaskOutput>();
 
         for (var output : outputs) {
-            // when outdated or duplicate outputs are thrown out, make sure to delete their
-            // buffers to avoid memory leaks
+            // throw out outdated or duplicate outputs
             if (output.render.isDisposed() || output.render.getLastUploadFrame() > output.submitTime) {
-                output.softDestroySafe();
                 continue;
             }
 
@@ -376,9 +374,6 @@ public class RenderSectionManager {
 
             if (previous == null || previous.submitTime < output.submitTime) {
                 map.put(render, output);
-                if (previous != null) {
-                    previous.softDestroySafe();
-                }
             }
         }
 

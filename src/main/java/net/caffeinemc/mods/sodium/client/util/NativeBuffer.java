@@ -48,6 +48,10 @@ public class NativeBuffer {
         deallocate(this.ref);
     }
 
+    public long getAddress() {
+        return this.ref.address;
+    }
+
     public int getLength() {
         return this.ref.length;
     }

@@ -12,10 +12,11 @@ public class CachedNativeBuffer extends NativeBuffer {
     }
 
     boolean attemptSetInUse(long now) {
-        // set the last use time even if something else is using it.
-        // this is fine because upon release, the last use time is updated again
-        this.lastUse = now;
-        return this.inUse.compareAndSet(false, true);
+        var success = this.inUse.compareAndSet(false, true);
+        if (success) {
+            this.lastUse = now;
+        }
+        return success;
     }
 
     boolean attemptSetFreed() {
