@@ -1,19 +1,18 @@
 package net.caffeinemc.mods.sodium.client.render.chunk.data;
 
 import net.caffeinemc.mods.sodium.client.gl.util.VertexRange;
-import net.caffeinemc.mods.sodium.client.util.CachedNativeBuffer;
 import net.caffeinemc.mods.sodium.client.util.NativeBuffer;
 
 public class BuiltSectionMeshParts {
     private final VertexRange[] ranges;
-    private final CachedNativeBuffer buffer;
+    private final NativeBuffer buffer;
 
-    public BuiltSectionMeshParts(CachedNativeBuffer buffer, VertexRange[] ranges) {
+    public BuiltSectionMeshParts(NativeBuffer buffer, VertexRange[] ranges) {
         this.ranges = ranges;
         this.buffer = buffer;
     }
 
-    public CachedNativeBuffer getVertexData() {
+    public NativeBuffer getVertexData() {
         return this.buffer;
     }
 

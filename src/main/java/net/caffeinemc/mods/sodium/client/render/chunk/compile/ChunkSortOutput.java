@@ -4,11 +4,10 @@ import net.caffeinemc.mods.sodium.client.render.chunk.RenderSection;
 import net.caffeinemc.mods.sodium.client.render.chunk.translucent_sorting.data.DynamicTopoData;
 import net.caffeinemc.mods.sodium.client.render.chunk.translucent_sorting.data.SortData;
 import net.caffeinemc.mods.sodium.client.render.chunk.translucent_sorting.data.Sorter;
-import net.caffeinemc.mods.sodium.client.util.BufferCache;
-import net.caffeinemc.mods.sodium.client.util.CachedNativeBuffer;
+import net.caffeinemc.mods.sodium.client.util.NativeBuffer;
 
 public class ChunkSortOutput extends BuilderTaskOutput implements SortData {
-    private CachedNativeBuffer indexBuffer;
+    private NativeBuffer indexBuffer;
     private boolean reuseUploadedIndexData;
     private DynamicTopoData.DynamicTopoSorter topoSorter;
 
@@ -34,7 +33,7 @@ public class ChunkSortOutput extends BuilderTaskOutput implements SortData {
     }
 
     @Override
-    public CachedNativeBuffer getIndexBuffer() {
+    public NativeBuffer getIndexBuffer() {
         return this.indexBuffer;
     }
 
@@ -52,16 +51,7 @@ public class ChunkSortOutput extends BuilderTaskOutput implements SortData {
         super.destroy();
 
         if (this.indexBuffer != null) {
-            BufferCache.instance().freeBufferInUse(this.indexBuffer);
-        }
-    }
-
-    @Override
-    protected void softDestroy() {
-        super.softDestroy();
-
-        if (this.indexBuffer != null) {
-            BufferCache.instance().release(this.indexBuffer);
+            this.indexBuffer.free();
         }
     }
 }

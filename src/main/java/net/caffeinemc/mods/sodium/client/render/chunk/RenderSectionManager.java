@@ -308,7 +308,7 @@ public class RenderSectionManager {
         this.needsGraphUpdate = this.needsGraphUpdate || touchedSectionInfo;
 
         for (var result : results) {
-            result.softDestroySafe();
+            result.destroy();
         }
     }
 

@@ -1,11 +1,10 @@
 package net.caffeinemc.mods.sodium.client.render.chunk.compile;
 
 import net.caffeinemc.mods.sodium.client.render.chunk.RenderSection;
+import net.caffeinemc.mods.sodium.client.render.chunk.data.BuiltSectionInfo;
+import net.caffeinemc.mods.sodium.client.render.chunk.data.BuiltSectionMeshParts;
 import net.caffeinemc.mods.sodium.client.render.chunk.terrain.TerrainRenderPass;
 import net.caffeinemc.mods.sodium.client.render.chunk.translucent_sorting.data.TranslucentData;
-import net.caffeinemc.mods.sodium.client.render.chunk.data.BuiltSectionMeshParts;
-import net.caffeinemc.mods.sodium.client.render.chunk.data.BuiltSectionInfo;
-import net.caffeinemc.mods.sodium.client.util.BufferCache;
 
 import java.util.Map;
 
@@ -38,16 +37,7 @@ public class ChunkBuildOutput extends ChunkSortOutput {
         super.destroy();
 
         for (BuiltSectionMeshParts data : this.meshes.values()) {
-            BufferCache.instance().freeBufferInUse(data.getVertexData());
-        }
-    }
-
-    @Override
-    public void softDestroy() {
-        super.softDestroy();
-
-        for (BuiltSectionMeshParts data : this.meshes.values()) {
-            BufferCache.instance().release(data.getVertexData());
+            data.getVertexData().free();
         }
     }
 }

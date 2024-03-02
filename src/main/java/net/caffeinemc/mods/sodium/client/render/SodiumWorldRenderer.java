@@ -6,7 +6,6 @@ import com.mojang.blaze3d.vertex.SheetedDecalTextureGenerator;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.blaze3d.vertex.VertexMultiConsumer;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
-import net.caffeinemc.mods.sodium.client.util.BufferCache;
 import net.caffeinemc.mods.sodium.client.SodiumClientMod;
 import net.caffeinemc.mods.sodium.client.gl.device.CommandList;
 import net.caffeinemc.mods.sodium.client.gl.device.RenderDevice;
@@ -63,7 +62,6 @@ public class SodiumWorldRenderer {
     private boolean useEntityCulling;
 
     private RenderSectionManager renderSectionManager;
-    public final BufferCache bufferCache = new BufferCache();
     public final Measurement measurement = new Measurement();
 
     /**
@@ -228,9 +226,6 @@ public class SodiumWorldRenderer {
         profiler.popPush("chunk_upload");
 
         this.renderSectionManager.uploadChunks();
-
-        // TODO: attempt running this off-thread
-        this.bufferCache.evictOutdatedResources();
 
         profiler.popPush("chunk_render_tick");
 
@@ -494,9 +489,7 @@ public class SodiumWorldRenderer {
     }
 
     public Collection<String> getDebugStrings() {
-        var strings = this.renderSectionManager.getDebugStrings();
-        this.bufferCache.addDebugStrings(strings);
-        return strings;
+        return this.renderSectionManager.getDebugStrings();
     }
 
     public boolean isSectionReady(int x, int y, int z) {
