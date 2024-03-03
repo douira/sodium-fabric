@@ -5,7 +5,7 @@ import net.caffeinemc.mods.sodium.client.render.chunk.data.BuiltSectionMeshParts
 import net.caffeinemc.mods.sodium.client.render.chunk.translucent_sorting.SortType;
 import net.caffeinemc.mods.sodium.client.render.chunk.translucent_sorting.TQuad;
 import net.caffeinemc.mods.sodium.client.util.BufferCache;
-import net.caffeinemc.mods.sodium.client.util.NativeBuffer;
+import net.caffeinemc.mods.sodium.client.render.measurement.TimingRecorder;
 import net.minecraft.core.SectionPos;
 
 import java.nio.IntBuffer;
@@ -17,6 +17,8 @@ import java.util.function.IntConsumer;
  * needs to change.
  */
 public class StaticTopoData extends MixedDirectionData {
+    private static final TimingRecorder topoSortRecorder = new TimingRecorder("Topo Sort");
+
     private Sorter sorterOnce;
 
     StaticTopoData(SectionPos sectionPos, VertexRange range, int quadCount) {
@@ -50,10 +52,12 @@ public class StaticTopoData extends MixedDirectionData {
         var sorter = new StaticSorter(quads.length);
         var indexWriter = new QuadIndexConsumerIntoBuffer(sorter.getIntBuffer());
 
+        var start = System.nanoTime();
         if (!TopoGraphSorting.topoGraphSort(indexWriter, quads, null, null)) {
             BufferCache.instance().release(sorter.getIndexBuffer());
             return null;
         }
+        topoSortRecorder.recordNow(quads.length, start);
 
         var staticTopoData = new StaticTopoData(sectionPos, range, quads.length);
         staticTopoData.sorterOnce = sorter;
