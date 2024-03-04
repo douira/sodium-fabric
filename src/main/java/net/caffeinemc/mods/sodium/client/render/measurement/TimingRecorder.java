@@ -9,7 +9,7 @@ public class TimingRecorder {
     private static final int WARMUP_COUNT = 5000;
 
     private final ReferenceArrayList<TimedEvent> events = new ReferenceArrayList<>(1000);
-    private boolean warmedUp = false;
+    private boolean warmedUp = Measurement.SKIP_RECORDER_WARMUP;
 
     private final String name;
     private final boolean printEvents;

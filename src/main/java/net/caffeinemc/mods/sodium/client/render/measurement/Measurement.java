@@ -67,6 +67,7 @@ public class Measurement {
     public static final HeuristicType DEBUG_ONLY_RENDER_TYPE = null;
     public static final int DEBUG_REDUCE_RENDER_INTERVAL = 0;
     public static final boolean DEBUG_FREEZE_WORLD = true;
+    public static final boolean SKIP_RECORDER_WARMUP = false;
 
     private static final boolean AUTO_RELOAD_WORLD = false;
     private static final int EPOCH_COUNT_TARGET = 50;
