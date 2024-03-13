@@ -4,8 +4,6 @@ import net.caffeinemc.mods.sodium.client.gl.arena.GlBufferSegment;
 import net.caffeinemc.mods.sodium.client.gl.util.VertexRange;
 import net.caffeinemc.mods.sodium.client.model.quad.properties.ModelQuadFacing;
 import net.caffeinemc.mods.sodium.client.render.chunk.region.RenderRegion;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.Arrays;
 
@@ -29,32 +27,26 @@ import java.util.Arrays;
  * updated independently of each other (in both directions).
  */
 public class SectionRenderDataStorage {
-    private final @Nullable GlBufferSegment[] vertexAllocations;
-    private final @Nullable GlBufferSegment @Nullable[] elementAllocations;
+    private final GlBufferSegment[] allocations;
 
     private final long pMeshDataArray;
+    private final boolean storesIndices;
 
     public SectionRenderDataStorage(boolean storesIndices) {
-        this.vertexAllocations = new GlBufferSegment[RenderRegion.REGION_SIZE];
-
-        if (storesIndices) {
-            this.elementAllocations = new GlBufferSegment[RenderRegion.REGION_SIZE];
-        } else {
-            this.elementAllocations = null;
-        }
-
+        var allocationCount = RenderRegion.REGION_SIZE * (storesIndices ? 2 : 1);
+        this.allocations = new GlBufferSegment[allocationCount];
         this.pMeshDataArray = SectionRenderDataUnsafe.allocateHeap(RenderRegion.REGION_SIZE);
+        this.storesIndices = storesIndices;
     }
 
     public void setVertexData(int localSectionIndex,
             GlBufferSegment allocation, VertexRange[] ranges) {
-        GlBufferSegment prev = this.vertexAllocations[localSectionIndex];
-
-        if (prev != null) {
-            prev.delete();
+        if (this.allocations[localSectionIndex] != null) {
+            this.allocations[localSectionIndex].delete();
+            this.allocations[localSectionIndex] = null;
         }
 
-        this.vertexAllocations[localSectionIndex] = allocation;
+        this.allocations[localSectionIndex] = allocation;
 
         var pMeshData = this.getDataPointer(localSectionIndex);
 
@@ -85,28 +77,26 @@ public class SectionRenderDataStorage {
     }
 
     public void setIndexData(int localSectionIndex, GlBufferSegment allocation) {
-        if (this.elementAllocations == null) {
+        if (!this.storesIndices) {
             throw new IllegalStateException("Cannot set index data when storesIndices is false");
         }
 
-        GlBufferSegment prev = this.elementAllocations[localSectionIndex];
-
-        if (prev != null) {
-            prev.delete();
+        var indexAllocationIndex = localSectionIndex + RenderRegion.REGION_SIZE;
+        if (this.allocations[indexAllocationIndex] != null) {
+            this.allocations[indexAllocationIndex].delete();
+            this.allocations[indexAllocationIndex] = null;
         }
 
-        this.elementAllocations[localSectionIndex] = allocation;
+        this.allocations[indexAllocationIndex] = allocation;
 
         var pMeshData = this.getDataPointer(localSectionIndex);
 
-        SectionRenderDataUnsafe.setBaseElement(pMeshData,
-                allocation.getOffset() | SectionRenderDataUnsafe.BASE_ELEMENT_MSB);
+        SectionRenderDataUnsafe.setIndexOffset(pMeshData, allocation.getOffset());
     }
 
     public void removeData(int localSectionIndex) {
         this.removeVertexData(localSectionIndex, false);
-
-        if (this.elementAllocations != null) {
+        if (this.storesIndices) {
             this.removeIndexData(localSectionIndex);
         }
     }
@@ -116,40 +106,28 @@ public class SectionRenderDataStorage {
     }
 
     private void removeVertexData(int localSectionIndex, boolean retainIndexData) {
-        GlBufferSegment prev = this.vertexAllocations[localSectionIndex];
-
-        if (prev == null) {
+        if (this.allocations[localSectionIndex] == null) {
             return;
         }
 
-        prev.delete();
-
-        this.vertexAllocations[localSectionIndex] = null;
+        this.allocations[localSectionIndex].delete();
+        this.allocations[localSectionIndex] = null;
 
         var pMeshData = this.getDataPointer(localSectionIndex);
-
-        var baseElement = SectionRenderDataUnsafe.getBaseElement(pMeshData);
+        var indexOffset = SectionRenderDataUnsafe.getIndexOffset(pMeshData);
         SectionRenderDataUnsafe.clear(pMeshData);
-
-        if (retainIndexData) {
-            SectionRenderDataUnsafe.setBaseElement(pMeshData, baseElement);
-        }
+        SectionRenderDataUnsafe.setIndexOffset(pMeshData, indexOffset);
     }
 
     public void removeIndexData(int localSectionIndex) {
-        final GlBufferSegment[] allocations = this.elementAllocations;
-
-        if (allocations == null) {
+        if (!this.storesIndices) {
             throw new IllegalStateException("Cannot remove index data when storesIndices is false");
         }
-
-        GlBufferSegment prev = allocations[localSectionIndex];
-
-        if (prev != null) {
-            prev.delete();
+        var indexAllocationIndex = localSectionIndex + RenderRegion.REGION_SIZE;
+        if (this.allocations[indexAllocationIndex] != null) {
+            this.allocations[indexAllocationIndex].delete();
+            this.allocations[indexAllocationIndex] = null;
         }
-
-        allocations[localSectionIndex] = null;
     }
 
     public void onBufferResized() {
@@ -159,7 +137,7 @@ public class SectionRenderDataStorage {
     }
 
     private void updateMeshes(int sectionIndex) {
-        var allocation = this.vertexAllocations[sectionIndex];
+        var allocation = this.allocations[sectionIndex];
 
         if (allocation == null) {
             return;
@@ -177,17 +155,18 @@ public class SectionRenderDataStorage {
     }
 
     public void onIndexBufferResized() {
-        if (this.elementAllocations == null) {
-            return;
-        }
-
-        for (int sectionIndex = 0; sectionIndex < RenderRegion.REGION_SIZE; sectionIndex++) {
-            var allocation = this.elementAllocations[sectionIndex];
-
-            if (allocation != null) {
-                SectionRenderDataUnsafe.setBaseElement(this.getDataPointer(sectionIndex),
-                        allocation.getOffset() | SectionRenderDataUnsafe.BASE_ELEMENT_MSB);
+        if (this.storesIndices) {
+            for (int sectionIndex = 0; sectionIndex < RenderRegion.REGION_SIZE; sectionIndex++) {
+                this.updateIndexes(sectionIndex);
             }
+        }
+    }
+
+    private void updateIndexes(int sectionIndex) {
+        var data = this.getDataPointer(sectionIndex);
+        var indexAllocation = this.allocations[sectionIndex + RenderRegion.REGION_SIZE];
+        if (indexAllocation != null) {
+            SectionRenderDataUnsafe.setIndexOffset(data, indexAllocation.getOffset());
         }
     }
 
@@ -196,22 +175,14 @@ public class SectionRenderDataStorage {
     }
 
     public void delete() {
-        deleteAllocations(this.vertexAllocations);
-
-        if (this.elementAllocations != null) {
-            deleteAllocations(this.elementAllocations);
-        }
-
-        SectionRenderDataUnsafe.freeHeap(this.pMeshDataArray);
-    }
-
-    private static void deleteAllocations(GlBufferSegment @NotNull [] allocations) {
-        for (var allocation : allocations) {
+        for (var allocation : this.allocations) {
             if (allocation != null) {
                 allocation.delete();
             }
         }
 
-        Arrays.fill(allocations, null);
+        Arrays.fill(this.allocations, null);
+
+        SectionRenderDataUnsafe.freeHeap(this.pMeshDataArray);
     }
 }
