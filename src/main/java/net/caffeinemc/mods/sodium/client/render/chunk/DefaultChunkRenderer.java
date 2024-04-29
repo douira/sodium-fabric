@@ -26,12 +26,24 @@ import net.caffeinemc.mods.sodium.client.render.chunk.vertex.format.ChunkVertexT
 import net.caffeinemc.mods.sodium.client.render.viewport.CameraTransform;
 import net.caffeinemc.mods.sodium.client.util.BitwiseMath;
 import org.lwjgl.system.MemoryUtil;
+
+import java.util.Arrays;
 import java.util.Iterator;
 
 public class DefaultChunkRenderer extends ShaderChunkRenderer {
     private final MultiDrawBatch batch;
 
     private final SharedQuadIndexBuffer sharedIndexBuffer;
+
+    private static int maskBits = 0;
+    private static int commands = 0;
+    private static int sections = 0;
+    private static int sectionsWithMultipleCommands = 0;
+    private static final int[] maskHistogram = new int[1 << ModelQuadFacing.COUNT];
+    private static final int[] contentHistogram = new int[1 << ModelQuadFacing.COUNT];
+    private static int counterSolid = 0;
+    private static int counterCutout = 0;
+    private static int counterTranslucent = 0;
 
     public DefaultChunkRenderer(RenderDevice device, ChunkVertexType vertexType) {
         super(device, vertexType);
@@ -61,6 +73,13 @@ public class DefaultChunkRenderer extends ShaderChunkRenderer {
         shader.setModelViewMatrix(matrices.modelView());
 
         Iterator<ChunkRenderList> iterator = renderLists.iterator(renderPass.isReverseOrder());
+
+        maskBits = 0;
+        commands = 0;
+        sections = 0;
+        sectionsWithMultipleCommands = 0;
+        Arrays.fill(maskHistogram, 0);
+        Arrays.fill(contentHistogram, 0);
 
         while (iterator.hasNext()) {
             ChunkRenderList renderList = iterator.next();
@@ -94,6 +113,31 @@ public class DefaultChunkRenderer extends ShaderChunkRenderer {
 
             setModelMatrixUniforms(shader, region, camera);
             executeDrawBatch(commandList, tessellation, this.batch);
+        }
+
+        if (renderPass == DefaultTerrainRenderPasses.SOLID
+                ? counterSolid++ % 100 == 0
+                : renderPass == DefaultTerrainRenderPasses.CUTOUT
+                ? counterCutout++ % 100 == 0 :
+                counterTranslucent++ % 100 == 0
+        ) {
+            System.out.println("pass " + (renderPass == DefaultTerrainRenderPasses.SOLID ? "solid" : renderPass == DefaultTerrainRenderPasses.CUTOUT ? "cutout" : "translucent"));
+            System.out.println("Mask bits: " + maskBits);
+            System.out.println("Commands: " + commands);
+            System.out.println("Sections: " + sections);
+            System.out.println("Sections with multiple commands: " + sectionsWithMultipleCommands);
+            var template = "XYZxyzU".toCharArray();
+            for (int i = 0; i < maskHistogram.length; i++) {
+                if (maskHistogram[i] > 0 || contentHistogram[i] > 0) {
+                    var builder = new StringBuilder();
+                    for (int j = ModelQuadFacing.COUNT - 1; j >= 0; j--) {
+                        builder.append(((i >> j) & 1) == 1 ? template[j] : ' ');
+                    }
+                    builder.append(" : ");
+                    builder.append(String.format("%5d / %5d", maskHistogram[i], contentHistogram[i]));
+                    System.out.println(builder);
+                }
+            }
         }
 
         super.end(renderPass);
@@ -143,12 +187,19 @@ public class DefaultChunkRenderer extends ShaderChunkRenderer {
             }
 
             // Mask off any geometry sets which are empty (contain no geometry)
-            slices &= SectionRenderDataUnsafe.getSliceMask(pMeshData);
+            var sliceMask = SectionRenderDataUnsafe.getSliceMask(pMeshData);
+            slices &= sliceMask;
+
+            contentHistogram[sliceMask]++;
+            maskHistogram[slices]++;
 
             // If there are no geometry sets to render, don't try to build a draw command buffer for this section
             if (slices == 0) {
                 continue;
             }
+
+            sections++;
+            maskBits += Integer.bitCount(slices);
 
             addDrawCommands(batch, pMeshData, slices);
         }
@@ -166,11 +217,17 @@ public class DefaultChunkRenderer extends ShaderChunkRenderer {
         int elementOffset = SectionRenderDataUnsafe.getBaseElement(pMeshData);
 
         // If high bit is set, the indices should be sourced from the arena's index buffer
+        var before = batch.size;
         if ((elementOffset & SectionRenderDataUnsafe.BASE_ELEMENT_MSB) != 0) {
             addIndexedDrawCommands(batch, pMeshData, mask);
         } else {
             addNonIndexedDrawCommands(batch, pMeshData, mask);
         }
+        var newCommands = batch.size - before;
+        if (newCommands > 1) {
+            sectionsWithMultipleCommands++;
+        }
+        commands += newCommands;
     }
 
     private static final int MAX_EXTRA_ELEMENTS_PER_AVOIDED_DRAW = 32;
@@ -227,6 +284,10 @@ public class DefaultChunkRenderer extends ShaderChunkRenderer {
             }
 
             lastMaskBit = maskBit;
+        }
+
+        if (size - batch.size > 1) {
+            int foo = 0;
         }
 
         batch.size = size;
