@@ -32,6 +32,7 @@ public class DefaultChunkRenderer extends ShaderChunkRenderer {
     private final MultiDrawBatch batch;
 
     private final SharedQuadIndexBuffer sharedIndexBuffer;
+    private static int contiguousSections = 0;
 
     public DefaultChunkRenderer(RenderDevice device, ChunkVertexType vertexType) {
         super(device, vertexType);
@@ -61,6 +62,8 @@ public class DefaultChunkRenderer extends ShaderChunkRenderer {
         shader.setModelViewMatrix(matrices.modelView());
 
         Iterator<ChunkRenderList> iterator = renderLists.iterator(renderPass.isReverseOrder());
+
+        contiguousSections = 0;
 
         while (iterator.hasNext()) {
             ChunkRenderList renderList = iterator.next();
@@ -96,6 +99,8 @@ public class DefaultChunkRenderer extends ShaderChunkRenderer {
             executeDrawBatch(commandList, tessellation, this.batch);
         }
 
+        System.out.println("Contiguous sections: " + contiguousSections);
+
         super.end(renderPass);
     }
 
@@ -124,6 +129,9 @@ public class DefaultChunkRenderer extends ShaderChunkRenderer {
         int originY = renderRegion.getChunkY();
         int originZ = renderRegion.getChunkZ();
 
+        long lastDrawResult = -1;
+//        int lastEndVertex = -1;
+
         while (iterator.hasNext()) {
             int sectionIndex = iterator.nextByteAsInt();
 
@@ -145,12 +153,25 @@ public class DefaultChunkRenderer extends ShaderChunkRenderer {
             // Mask off any geometry sets which are empty (contain no geometry)
             slices &= SectionRenderDataUnsafe.getSliceMask(pMeshData);
 
+            // check if the sections are contiguous
+//            var startVertex = SectionRenderDataUnsafe.getVertexOffset(pMeshData, 0);
+//            if (startVertex == lastEndVertex) {
+//                contiguousSections++;
+//            }
+//
+//            // convert the vertex count to element count
+//            var vertexCount = (SectionRenderDataUnsafe.getElementCount(pMeshData, ModelQuadFacing.COUNT - 1) / 6) * 4;
+//            var vertexOffset = SectionRenderDataUnsafe.getVertexOffset(pMeshData, ModelQuadFacing.COUNT - 1);
+//            if (vertexOffset != 0) {
+//                lastEndVertex = vertexOffset + vertexCount;
+//            }
+
             // If there are no geometry sets to render, don't try to build a draw command buffer for this section
             if (slices == 0) {
                 continue;
             }
 
-            addDrawCommands(batch, pMeshData, slices);
+            lastDrawResult = addDrawCommands(batch, pMeshData, slices, lastDrawResult);
         }
     }
 
@@ -162,14 +183,15 @@ public class DefaultChunkRenderer extends ShaderChunkRenderer {
      * draw batch provides pointers to arrays where each of the section's data is
      * stored. The batch's size counts how many commands it contains.
      */
-    private static void addDrawCommands(MultiDrawBatch batch, long pMeshData, int mask) {
+    private static long addDrawCommands(MultiDrawBatch batch, long pMeshData, int mask, long lastDrawResult) {
         int elementOffset = SectionRenderDataUnsafe.getBaseElement(pMeshData);
 
         // If high bit is set, the indices should be sourced from the arena's index buffer
         if ((elementOffset & SectionRenderDataUnsafe.BASE_ELEMENT_MSB) != 0) {
             addIndexedDrawCommands(batch, pMeshData, mask);
+            return -1;
         } else {
-            addNonIndexedDrawCommands(batch, pMeshData, mask);
+            return addNonIndexedDrawCommands(batch, pMeshData, mask, lastDrawResult);
         }
     }
 
@@ -179,7 +201,7 @@ public class DefaultChunkRenderer extends ShaderChunkRenderer {
      * Generates the draw commands for a chunk's meshes using the shared index buffer.
      */
     @SuppressWarnings("IntegerMultiplicationImplicitCastToLong")
-    private static void addNonIndexedDrawCommands(MultiDrawBatch batch, long pMeshData, int mask) {
+    private static long addNonIndexedDrawCommands(MultiDrawBatch batch, long pMeshData, int mask, long lastDrawResult) {
         final var pElementPointer = batch.pElementPointer;
         final var pBaseVertex = batch.pBaseVertex;
         final var pElementCount = batch.pElementCount;
@@ -193,6 +215,7 @@ public class DefaultChunkRenderer extends ShaderChunkRenderer {
         for (int i = 0; i <= ModelQuadFacing.COUNT; i++) {
             var elementCountAndFacing = i == ModelQuadFacing.COUNT ? -1 : SectionRenderDataUnsafe.getElementCountAndFacing(pMeshData, i);
             int facing = SectionRenderDataUnsafe.getFacing(elementCountAndFacing);
+            int elementCount = SectionRenderDataUnsafe.getElementCount(elementCountAndFacing);
             final int maskBit = (mask >> facing) & 1;
 
             if (maskBit == 0) {
@@ -200,7 +223,7 @@ public class DefaultChunkRenderer extends ShaderChunkRenderer {
                     // don't write out draw command if we can continue this one
                     // to avoid splitting commands across facings with no or only little geometry.
                     if (i != ModelQuadFacing.COUNT) {
-                        excessElementCount += SectionRenderDataUnsafe.getElementCount(elementCountAndFacing);
+                        excessElementCount += elementCount;
                         if (excessElementCount <= MAX_EXTRA_ELEMENTS_PER_AVOIDED_DRAW) {
                             // continue without setting lastMaskBit to maskBit, which is 0 here.
                             // this results in lastMaskBit being 1 again for the next iteration.
@@ -216,13 +239,25 @@ public class DefaultChunkRenderer extends ShaderChunkRenderer {
                     MemoryUtil.memPutInt(pBaseVertex + (size << 2), groupBaseVertex);
                     MemoryUtil.memPutAddress(pElementPointer + (size << 3), 0);
                     size++;
-                    groupElementCount = 0;
-                    excessElementCount = 0;
                 }
             } else {
-                groupElementCount += SectionRenderDataUnsafe.getElementCount(elementCountAndFacing);
                 if (lastMaskBit == 0) {
+                    groupElementCount = 0;
+                    excessElementCount = 0;
                     groupBaseVertex = SectionRenderDataUnsafe.getVertexOffset(pMeshData, i);
+                }
+
+                groupElementCount += elementCount;
+
+                // detect contiguous sections
+                if (i == 0 && lastDrawResult != -1) {
+                    // unpack the last draw result and check if this section can expand upon the last section's draw command
+                    int lastBaseVertex = (int) lastDrawResult;
+                    int lastElementCount = (int) (lastDrawResult >> 32);
+                    int lastVertexCount = (lastElementCount / 6) * 4;
+                    if (lastBaseVertex + lastVertexCount == groupBaseVertex) {
+                        contiguousSections++;
+                    }
                 }
             }
 
@@ -230,6 +265,9 @@ public class DefaultChunkRenderer extends ShaderChunkRenderer {
         }
 
         batch.size = size;
+
+        // return the base vertex and count at the last drawn vertex for matching continuous draws
+        return (long) groupElementCount << 32 | (long) groupBaseVertex;
     }
 
     /**

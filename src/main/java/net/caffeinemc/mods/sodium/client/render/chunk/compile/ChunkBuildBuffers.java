@@ -14,6 +14,8 @@ import net.caffeinemc.mods.sodium.client.render.chunk.vertex.builder.ChunkMeshBu
 import net.caffeinemc.mods.sodium.client.render.chunk.vertex.format.ChunkVertexType;
 import net.caffeinemc.mods.sodium.client.util.NativeBuffer;
 
+import java.util.Arrays;
+
 /**
  * A collection of temporary buffers for each worker thread which will be used to build chunk meshes for given render
  * passes. This makes a best-effort attempt to pick a suitable size for each scratch buffer, but will never try to
@@ -53,7 +55,7 @@ public class ChunkBuildBuffers {
      * have been rendered to pass the finished meshes over to the graphics card. This function can be called multiple
      * times to return multiple copies.
      */
-    public BuiltSectionMeshParts createMesh(TerrainRenderPass pass, int visibleSlices, boolean forceUnassigned, boolean sliceReordering) {
+    public BuiltSectionMeshParts createMesh(TerrainRenderPass pass, int visibleSlices, boolean reverse, boolean forceUnassigned, boolean sliceReordering) {
         var builder = this.builders.get(pass);
 
         VertexRange[] vertexRanges = new VertexRange[ModelQuadFacing.COUNT];
@@ -79,9 +81,6 @@ public class ChunkBuildBuffers {
             var unassignedBuffer = builder.getVertexBuffer(ModelQuadFacing.UNASSIGNED);
             int vertexRangeCount = 0;
             vertexRanges[vertexRangeCount++] = new VertexRange(unassignedBuffer.count(), ModelQuadFacing.UNASSIGNED.ordinal());
-            if (!unassignedBuffer.isEmpty()) {
-                mergedBufferBuilder.put(unassignedBuffer.slice());
-            }
 
             // write all visible and then invisible slices
             for (var step = 0; step < 2; step++) {
@@ -91,14 +90,27 @@ public class ChunkBuildBuffers {
                         continue;
                     }
 
-                    var buffer = builder.getVertexBuffer(facing);
-
                     // generate empty ranges to prevent SectionRenderData storage from making up indexes for null ranges
+                    var buffer = builder.getVertexBuffer(facing);
                     vertexRanges[vertexRangeCount++] = new VertexRange(buffer.count(), facingIndex);
+                }
+            }
 
-                    if (!buffer.isEmpty()) {
-                        mergedBufferBuilder.put(buffer.slice());
-                    }
+            // reverse the vertex ranges for half the sections
+            if (reverse) {
+                var half = vertexRangeCount / 2;
+                for (var i = 0; i < half; i++) {
+                    var temp = vertexRanges[i];
+                    vertexRanges[i] = vertexRanges[vertexRangeCount - i - 1];
+                    vertexRanges[vertexRangeCount - i - 1] = temp;
+                }
+            }
+
+            // write the buffers based on the ranges
+            for (var range : vertexRanges) {
+                var buffer = builder.getVertexBuffer(ModelQuadFacing.VALUES[range.facing()]);
+                if (!buffer.isEmpty()) {
+                    mergedBufferBuilder.put(buffer.slice());
                 }
             }
         } else {

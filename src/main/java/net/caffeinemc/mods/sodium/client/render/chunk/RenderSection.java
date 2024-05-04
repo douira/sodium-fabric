@@ -245,6 +245,10 @@ public class RenderSection {
         return this.chunkZ;
     }
 
+    public boolean hasReversedSlices() {
+        return this.chunkX % 2 == 0;
+    }
+
     public boolean isDisposed() {
         return this.disposed;
     }

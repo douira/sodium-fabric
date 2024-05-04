@@ -74,7 +74,7 @@ public class SectionRenderDataStorage {
             }
 
             SectionRenderDataUnsafe.setVertexOffset(pMeshData, i, vertexOffset);
-            SectionRenderDataUnsafe.setElementCountAndFacing(pMeshData, i, (vertexCount >> 2) * 6, facing);
+            SectionRenderDataUnsafe.setElementCountAndFacing(pMeshData, i, (vertexCount / 4) * 6, facing);
 
             if (vertexCount > 0) {
                 sliceMask |= 1 << facing;

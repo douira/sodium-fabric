@@ -62,6 +62,10 @@ public class RenderRegionManager {
         var indexUploads = new ArrayList<PendingSectionIndexBufferUpload>();
 
         for (BuilderTaskOutput result : results) {
+            if (result == null) {
+                continue;
+            }
+
             int renderSectionIndex = result.render.getSectionIndex();
 
             if (result.render.isDisposed()) {
@@ -80,7 +84,7 @@ public class RenderRegionManager {
 
                     if (mesh != null) {
                         uploads.add(new PendingSectionMeshUpload(result.render, mesh, pass,
-                        new PendingUpload(mesh.getVertexData())));
+                                new PendingUpload(mesh.getVertexData())));
                     }
                 }
             }
@@ -144,12 +148,66 @@ public class RenderRegionManager {
         }
     }
 
-    private Reference2ReferenceMap.FastEntrySet<RenderRegion, List<BuilderTaskOutput>> createMeshUploadQueues(Collection<BuilderTaskOutput> results) {
-        var map = new Reference2ReferenceOpenHashMap<RenderRegion, List<BuilderTaskOutput>>();
+    private static class UploadList extends ArrayList<BuilderTaskOutput> {
+        int evenIndex = 0;
+        int oddIndex = 1;
+
+        void addEven(BuilderTaskOutput element) {
+            // a null element needs to be added if even is greater than odd
+            if (this.evenIndex > this.oddIndex) {
+                this.add(this.evenIndex - 1, null);
+                this.add(this.evenIndex, element);
+            }
+
+            // even less than odd but still needs to add new element
+            else if (this.oddIndex == this.evenIndex + 1) {
+                this.add(this.evenIndex, element);
+            }
+
+            // odd much greater than even, only needs to set element in place of null
+            else {
+                this.set(this.evenIndex, element);
+            }
+
+            this.evenIndex += 2;
+        }
+
+        void addOdd(BuilderTaskOutput element) {
+            // a null element needs to be added if odd is greater than even
+            if (this.oddIndex > this.evenIndex) {
+                this.add(this.oddIndex - 1, null);
+                this.add(this.oddIndex, element);
+            }
+
+            // odd less than even but still needs to add new element
+            else if (this.evenIndex == this.oddIndex + 1) {
+                this.add(this.oddIndex, element);
+            }
+
+            // even much greater than odd, only needs to set element in place of null
+            else {
+                this.set(this.oddIndex, element);
+            }
+
+            this.oddIndex += 2;
+        }
+    }
+
+
+    private Reference2ReferenceMap.FastEntrySet<RenderRegion, UploadList> createMeshUploadQueues(Collection<BuilderTaskOutput> results) {
+        var map = new Reference2ReferenceOpenHashMap<RenderRegion, UploadList>();
 
         for (var result : results) {
-            var queue = map.computeIfAbsent(result.render.getRegion(), k -> new ArrayList<>());
-            queue.add(result);
+            var queue = map.computeIfAbsent(result.render.getRegion(), k -> new UploadList());
+
+            // interleave reversed and non-reversed slices in the upload to
+            // approximately ensure correct interleaving in the buffer.
+            // The order should start with reversed and then alternate.
+            if (result.render.hasReversedSlices()) {
+                queue.addEven(result);
+            } else {
+                queue.addOdd(result);
+            }
         }
 
         return map.reference2ReferenceEntrySet();
@@ -190,7 +248,8 @@ public class RenderRegionManager {
         return instance;
     }
 
-    private record PendingSectionMeshUpload(RenderSection section, BuiltSectionMeshParts meshData, TerrainRenderPass pass, PendingUpload vertexUpload) {
+    private record PendingSectionMeshUpload(RenderSection section, BuiltSectionMeshParts meshData,
+                                            TerrainRenderPass pass, PendingUpload vertexUpload) {
     }
 
     private record PendingSectionIndexBufferUpload(RenderSection section, PendingUpload indexBufferUpload) {
