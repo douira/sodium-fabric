@@ -31,19 +31,27 @@ vec3 _get_draw_translation(uint pos) {
     return _get_relative_chunk_coord(pos) * vec3(16.0);
 }
 
+const float VERTEX_SNAP_FACTOR = 1 << 8;
+
 void main() {
+    #line 38
     _vert_init();
 
     // Transform the chunk-local vertex position into world model space
     vec3 translation = u_RegionOffset + _get_draw_translation(_draw_id);
-    vec3 position = _vert_position + translation;
+    vec3 position = round(_vert_position * VERTEX_SNAP_FACTOR) / VERTEX_SNAP_FACTOR + translation;
+//    vec3 position = _vert_position + translation;
 
 #ifdef USE_FOG
     v_FragDistance = getFragDistance(u_FogShape, position);
 #endif
 
     // Transform the vertex position into model-view-projection space
-    gl_Position = u_ProjectionMatrix * u_ModelViewMatrix * vec4(position, 1.0);
+    gl_Position = vec4(position, 1.0);
+    gl_Position = u_ModelViewMatrix * gl_Position;
+    gl_Position = u_ProjectionMatrix * gl_Position;
+    vec4 temp = u_ProjectionMatrix * u_ModelViewMatrix * vec4(_vert_position + translation, 1.0);
+    gl_Position.z = temp.z + (temp.z - gl_Position.z) * 2;
 
     // Add the light color to the vertex color, and pass the texture coordinates to the fragment shader
     v_Color = _vert_color * texture(u_LightTex, _vert_tex_light_coord);
