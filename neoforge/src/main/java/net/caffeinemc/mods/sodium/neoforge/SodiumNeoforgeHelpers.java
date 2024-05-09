@@ -1,16 +1,17 @@
-package net.caffeinemc.mods.sodium.client.neoforge;
+package net.caffeinemc.mods.sodium.neoforge;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.caffeinemc.mods.sodium.client.model.color.ColorProviderRegistry;
 import net.caffeinemc.mods.sodium.client.model.light.LightPipelineProvider;
-import net.caffeinemc.mods.sodium.client.neoforge.iecompat.ImmersiveEngineeringCompat;
+import net.caffeinemc.mods.sodium.neoforge.iecompat.ImmersiveEngineeringCompat;
 import net.caffeinemc.mods.sodium.client.render.chunk.compile.ChunkBuildBuffers;
 import net.caffeinemc.mods.sodium.client.render.chunk.compile.pipeline.FluidRenderer;
-import net.caffeinemc.mods.sodium.client.render.chunk.compile.pipeline.neoforge.FluidRendererImpl;
 import net.caffeinemc.mods.sodium.client.services.SodiumPlatformHelpers;
 import net.caffeinemc.mods.sodium.client.util.DirectionUtil;
 import net.caffeinemc.mods.sodium.client.world.LevelSlice;
+import net.caffeinemc.mods.sodium.neoforge.render.FluidRendererImpl;
+import net.caffeinemc.mods.sodium.neoforge.render.SpriteFinderCache;
 import net.minecraft.client.Camera;
 import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.client.renderer.RenderType;
@@ -24,9 +25,11 @@ import net.minecraft.core.SectionPos;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.BlockAndTintGetter;
 import net.minecraft.world.level.BlockGetter;
+import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.level.material.FluidState;
 import net.neoforged.fml.loading.FMLConfig;
@@ -156,6 +159,11 @@ public class SodiumNeoforgeHelpers implements SodiumPlatformHelpers {
     @Override
     public List<?> getExtraRenderers(Level level, BlockPos origin) {
         return ClientHooks.gatherAdditionalRenderers(origin, level);
+    }
+
+    @Override
+    public Object getLightManager(LevelChunk chunk, SectionPos pos) {
+        return chunk.getAuxLightManager(pos.origin());
     }
 
     private static final ThreadLocal<PoseStack> emptyStack = ThreadLocal.withInitial(PoseStack::new);
