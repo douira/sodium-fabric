@@ -151,15 +151,17 @@ public class ChunkBuilderMeshingTask extends ChunkBuilderTask<ChunkBuildOutput> 
         }
 
         Map<TerrainRenderPass, BuiltSectionMeshParts> meshes = new Reference2ReferenceOpenHashMap<>();
-        var visibleSlices = DefaultChunkRenderer.getVisibleFaces(
-                (int) this.absoluteCameraPos.x(), (int) this.absoluteCameraPos.y(), (int) this.absoluteCameraPos.z(),
-                this.render.getChunkX(), this.render.getChunkY(), this.render.getChunkZ());
+        var xDelta = this.render.getCenterX() - (int) this.absoluteCameraPos.x();
+        var yDelta = this.render.getCenterY() - (int) this.absoluteCameraPos.y();
+        var zDelta = this.render.getCenterZ() - (int) this.absoluteCameraPos.z();
 
         for (TerrainRenderPass pass : DefaultTerrainRenderPasses.ALL) {
             // consolidate all translucent geometry into UNASSIGNED so that it's rendered
             // all together if it needs to share an index buffer between the directions
             boolean isTranslucent = pass == DefaultTerrainRenderPasses.TRANSLUCENT;
-            BuiltSectionMeshParts mesh = buffers.createMesh(pass, visibleSlices, isTranslucent && sortType.needsDirectionMixing, !isTranslucent);
+            BuiltSectionMeshParts mesh = buffers.createMesh(pass,
+                    isTranslucent && sortType.needsDirectionMixing, !isTranslucent,
+                    xDelta, yDelta, zDelta);
 
             if (mesh != null) {
                 meshes.put(pass, mesh);

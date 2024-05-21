@@ -14,6 +14,8 @@ import net.caffeinemc.mods.sodium.client.render.chunk.vertex.builder.ChunkMeshBu
 import net.caffeinemc.mods.sodium.client.render.chunk.vertex.format.ChunkVertexType;
 import net.caffeinemc.mods.sodium.client.util.NativeBuffer;
 
+import java.util.Arrays;
+
 /**
  * A collection of temporary buffers for each worker thread which will be used to build chunk meshes for given render
  * passes. This makes a best-effort attempt to pick a suitable size for each scratch buffer, but will never try to
@@ -52,8 +54,15 @@ public class ChunkBuildBuffers {
      * Creates immutable baked chunk meshes from all non-empty scratch buffers. This is used after all blocks
      * have been rendered to pass the finished meshes over to the graphics card. This function can be called multiple
      * times to return multiple copies.
+     *
+     * @param pass            The render pass to create the mesh for
+     * @param forceUnassigned If true, all geometry will be rendered with the unassigned facing
+     * @param sliceReordering If true, the slices will be reordered to minimize the number of draw commands
+     * @param xDelta          The x component of the vector from the camera to the section
+     * @param yDelta          The y component of the vector from the camera to the section
+     * @param zDelta          The z component of the vector from the camera to the section
      */
-    public BuiltSectionMeshParts createMesh(TerrainRenderPass pass, int visibleSlices, boolean forceUnassigned, boolean sliceReordering) {
+    public BuiltSectionMeshParts createMesh(TerrainRenderPass pass, boolean forceUnassigned, boolean sliceReordering, int xDelta, int yDelta, int zDelta) {
         var builder = this.builders.get(pass);
 
         VertexRange[] vertexRanges = new VertexRange[ModelQuadFacing.COUNT];
@@ -78,31 +87,33 @@ public class ChunkBuildBuffers {
         if (sliceReordering) {
             // sliceReordering implies !forceUnassigned
 
-            // write all currently visible slices first, and then the rest.
-            // start with unassigned as it will never become invisible
-            var unassignedBuffer = builder.getVertexBuffer(ModelQuadFacing.UNASSIGNED);
-            int vertexRangeCount = 0;
-            vertexRanges[vertexRangeCount++] = new VertexRange(unassignedBuffer.count(), ModelQuadFacing.UNASSIGNED.ordinal());
-            if (!unassignedBuffer.isEmpty()) {
-                mergedBufferBuilder.put(unassignedBuffer.slice());
-            }
+            var orderedFacings = Arrays.copyOf(ModelQuadFacing.VALUES, ModelQuadFacing.COUNT);
+            var facingSortKeys = new int[] {
+                    xDelta, yDelta, zDelta, -xDelta, -yDelta, -zDelta, 0
+            };
 
-            // write all visible and then invisible slices
-            for (var step = 0; step < 2; step++) {
-                for (ModelQuadFacing facing : ModelQuadFacing.VALUES) {
-                    var facingIndex = facing.ordinal();
-                    if (facing == ModelQuadFacing.UNASSIGNED || ((visibleSlices >> facingIndex) & 1) == step) {
-                        continue;
-                    }
+            Arrays.sort(orderedFacings, (a, b) -> {
+                var aKey = facingSortKeys[a.ordinal()];
+                var bKey = facingSortKeys[b.ordinal()];
+                var result = Integer.compare(aKey, bKey);
 
-                    var buffer = builder.getVertexBuffer(facing);
+                // compare two negative keys backwards to avoid mirroring around 0
+                if (aKey < 0 && bKey < 0) {
+                    result = -result;
+                }
 
-                    // generate empty ranges to prevent SectionRenderData storage from making up indexes for null ranges
-                    vertexRanges[vertexRangeCount++] = new VertexRange(buffer.count(), facingIndex);
+                return result;
+            });
 
-                    if (!buffer.isEmpty()) {
-                        mergedBufferBuilder.put(buffer.slice());
-                    }
+
+            for (int i = 0; i < ModelQuadFacing.COUNT; i++) {
+                var facing = orderedFacings[i];
+                var buffer = builder.getVertexBuffer(facing);
+
+                vertexRanges[i] = new VertexRange(buffer.count(), facing.ordinal());
+
+                if (!buffer.isEmpty()) {
+                    mergedBufferBuilder.put(buffer.slice());
                 }
             }
         } else {
