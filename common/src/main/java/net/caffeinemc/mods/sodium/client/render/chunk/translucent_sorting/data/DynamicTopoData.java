@@ -1,7 +1,6 @@
 package net.caffeinemc.mods.sodium.client.render.chunk.translucent_sorting.data;
 
 import it.unimi.dsi.fastutil.objects.Object2ReferenceOpenHashMap;
-import net.caffeinemc.mods.sodium.client.render.chunk.data.BuiltSectionMeshParts;
 import net.caffeinemc.mods.sodium.client.render.chunk.translucent_sorting.TQuad;
 import net.caffeinemc.mods.sodium.client.render.chunk.translucent_sorting.trigger.GeometryPlanes;
 import net.caffeinemc.mods.sodium.client.util.sorting.RadixSort;
@@ -250,11 +249,11 @@ public class DynamicTopoData extends DynamicData {
         }
     }
 
-    public static DynamicTopoData fromMesh(BuiltSectionMeshParts translucentMesh,
+    public static DynamicTopoData fromMesh(int[] vertexCounts,
                                            CombinedCameraPos cameraPos, TQuad[] quads, SectionPos sectionPos,
                                            GeometryPlanes geometryPlanes) {
         var distancesByNormal = geometryPlanes.prepareAndGetDistances();
-        int vertexCount = TranslucentData.getUnassignedVertexCount(translucentMesh);
+        int vertexCount = TranslucentData.getUnassignedVertexCount(vertexCounts);
 
         return new DynamicTopoData(sectionPos, vertexCount, quads, geometryPlanes,
                 cameraPos.getAbsoluteCameraPos(), distancesByNormal);

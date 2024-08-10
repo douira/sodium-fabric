@@ -1,6 +1,5 @@
 package net.caffeinemc.mods.sodium.client.render.chunk.translucent_sorting.data;
 
-import net.caffeinemc.mods.sodium.client.render.chunk.data.BuiltSectionMeshParts;
 import net.caffeinemc.mods.sodium.client.render.chunk.translucent_sorting.SortType;
 import net.caffeinemc.mods.sodium.client.render.chunk.translucent_sorting.TQuad;
 import net.minecraft.core.SectionPos;
@@ -42,8 +41,8 @@ public class StaticTopoData extends MixedDirectionData {
         }
     }
 
-    public static StaticTopoData fromMesh(BuiltSectionMeshParts translucentMesh, TQuad[] quads, SectionPos sectionPos) {
-        int vertexCount = TranslucentData.getUnassignedVertexCount(translucentMesh);
+    public static StaticTopoData fromMesh(int[] vertexCounts, TQuad[] quads, SectionPos sectionPos) {
+        int vertexCount = TranslucentData.getUnassignedVertexCount(vertexCounts);
         var sorter = new StaticSorter(quads.length);
         var indexWriter = new QuadIndexConsumerIntoBuffer(sorter.getIntBuffer());
 

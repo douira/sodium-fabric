@@ -37,6 +37,7 @@ import net.minecraft.world.level.block.RenderShape;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.FluidState;
+
 import java.util.Map;
 
 import org.joml.Vector3dc;
@@ -44,7 +45,7 @@ import org.joml.Vector3dc;
 /**
  * Rebuilds all the meshes of a chunk for each given render pass with non-occluded blocks. The result is then uploaded
  * to graphics memory on the main thread.
- *
+ * <p>
  * This task takes a slice of the level from the thread it is created on. Since these slices require rather large
  * array allocations, they are pooled to ensure that the garbage collector doesn't become overloaded.
  */
@@ -155,6 +156,27 @@ public class ChunkBuilderMeshingTask extends ChunkBuilderTask<ChunkBuildOutput> 
             sortType = collector.finishRendering();
         }
 
+        renderData.setOcclusionData(occluder.resolve());
+
+        boolean reuseUploadedData = false;
+        TranslucentData translucentData = null;
+        if (collector != null) {
+            var oldData = this.render.getTranslucentData();
+            translucentData = collector.getTranslucentData(oldData, buffers, this);
+            reuseUploadedData = translucentData == oldData;
+        }
+
+        var output = new ChunkBuildOutput(this.render, this.submitTime, translucentData, renderData.build());
+        if (collector != null) {
+            if (reuseUploadedData) {
+                output.markAsReusingUploadedData();
+            } else if (translucentData instanceof PresentTranslucentData present) {
+                var sorter = present.getSorter();
+                sorter.writeIndexBuffer(this, true);
+                output.copyResultFrom(sorter);
+            }
+        }
+
         Map<TerrainRenderPass, BuiltSectionMeshParts> meshes = new Reference2ReferenceOpenHashMap<>();
 
         for (TerrainRenderPass pass : DefaultTerrainRenderPasses.ALL) {
@@ -169,33 +191,7 @@ public class ChunkBuilderMeshingTask extends ChunkBuilderTask<ChunkBuildOutput> 
             }
         }
 
-        // cancellation opportunity right before translucent sorting
-        if (cancellationToken.isCancelled()) {
-            meshes.forEach((pass, mesh) -> mesh.getVertexData().free());
-            return null;
-        }
-
-        renderData.setOcclusionData(occluder.resolve());
-
-        boolean reuseUploadedData = false;
-        TranslucentData translucentData = null;
-        if (collector != null) {
-            var oldData = this.render.getTranslucentData();
-            translucentData = collector.getTranslucentData(
-                    oldData, meshes.get(DefaultTerrainRenderPasses.TRANSLUCENT), this);
-            reuseUploadedData = translucentData == oldData;
-        }
-
-        var output = new ChunkBuildOutput(this.render, this.submitTime, translucentData, renderData.build(), meshes);
-        if (collector != null) {
-            if (reuseUploadedData) {
-                output.markAsReusingUploadedData();
-            } else if (translucentData instanceof PresentTranslucentData present) {
-                var sorter = present.getSorter();
-                sorter.writeIndexBuffer(this, true);
-                output.copyResultFrom(sorter);
-            }
-        }
+        output.setMeshes(meshes);
 
         return output;
     }
@@ -206,7 +202,8 @@ public class ChunkBuilderMeshingTask extends ChunkBuilderTask<ChunkBuildOutput> 
         BlockState state = null;
         try {
             state = slice.getBlockState(pos);
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
         CrashReportCategory.populateBlockDetails(crashReportSection, slice, pos, state);
 
         crashReportSection.setDetail("Chunk section", this.render);

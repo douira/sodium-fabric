@@ -51,6 +51,28 @@ public class ChunkBuildBuffers {
         return this.builders.get(material.pass);
     }
 
+    public int[] getVertexCounts(TerrainRenderPass pass) {
+        var builder = this.builders.get(pass);
+
+        int[] vertexCounts = new int[ModelQuadFacing.COUNT];
+        boolean hasAny = false;
+
+        for (ModelQuadFacing facing : ModelQuadFacing.VALUES) {
+            var buffer = builder.getVertexBuffer(facing);
+            if (buffer.isEmpty()) {
+                vertexCounts[facing.ordinal()] = -1;
+            } else {
+                vertexCounts[facing.ordinal()] = buffer.count();
+                hasAny = true;
+            }
+        }
+
+        if (!hasAny) {
+            return null;
+        }
+
+        return vertexCounts;
+    }
     /**
      * Creates immutable baked chunk meshes from all non-empty scratch buffers. This is used after all blocks
      * have been rendered to pass the finished meshes over to the graphics card. This function can be called multiple

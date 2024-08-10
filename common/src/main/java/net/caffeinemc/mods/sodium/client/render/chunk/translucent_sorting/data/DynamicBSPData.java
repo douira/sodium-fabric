@@ -1,6 +1,6 @@
 package net.caffeinemc.mods.sodium.client.render.chunk.translucent_sorting.data;
 
-import net.caffeinemc.mods.sodium.client.render.chunk.data.BuiltSectionMeshParts;
+import net.caffeinemc.mods.sodium.client.render.chunk.compile.ChunkBuildBuffers;
 import net.caffeinemc.mods.sodium.client.render.chunk.translucent_sorting.TQuad;
 import net.caffeinemc.mods.sodium.client.render.chunk.translucent_sorting.bsp_tree.BSPNode;
 import net.caffeinemc.mods.sodium.client.render.chunk.translucent_sorting.bsp_tree.BSPResult;
@@ -41,9 +41,9 @@ public class DynamicBSPData extends DynamicData {
         return new DynamicBSPSorter(this.getQuadCount());
     }
 
-    public static DynamicBSPData fromMesh(BuiltSectionMeshParts translucentMesh,
+    public static DynamicBSPData fromMesh(int[] vertexCounts,
                                           CombinedCameraPos cameraPos, TQuad[] quads, SectionPos sectionPos,
-                                          TranslucentData oldData) {
+                                          TranslucentData oldData, ChunkBuildBuffers buffers) {
         BSPNode oldRoot = null;
         int generation = 0;
         boolean prepareNodeReuse = false;
@@ -55,9 +55,9 @@ public class DynamicBSPData extends DynamicData {
             // (times the section has been built)
             prepareNodeReuse = generation >= NODE_REUSE_MIN_GENERATION;
         }
-        var result = BSPNode.buildBSP(quads, sectionPos, oldRoot, prepareNodeReuse);
+        var result = BSPNode.buildBSP(quads, sectionPos, oldRoot, prepareNodeReuse, buffers);
 
-        int vertexCount = TranslucentData.getUnassignedVertexCount(translucentMesh);
+        int vertexCount = TranslucentData.getUnassignedVertexCount(vertexCounts);
 
         var dynamicData = new DynamicBSPData(sectionPos, vertexCount, result, cameraPos.getAbsoluteCameraPos(), quads, generation);
 

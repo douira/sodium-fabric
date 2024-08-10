@@ -379,6 +379,8 @@ abstract class InnerPartitionBSPNode extends BSPNode {
                     partitions, axis, endsWithPlane);
         }
 
+        // find the center quad in the points array as a good split plane
+        var splitQuadIndex = decodeQuadIndex(points.getLong(points.size() / 2));
         var intersectingHandling = handleIntersecting(workspace, indexes, depth, oldNode);
         if (intersectingHandling != null) {
             return intersectingHandling;
@@ -390,98 +392,6 @@ abstract class InnerPartitionBSPNode extends BSPNode {
             throw new BSPBuildFailureException("No partition found but not intersecting and can't be statically topo sorted");
         }
         return multiLeafNode;
-    }
-
-    static private BSPNode handleIntersecting(BSPWorkspace workspace, IntArrayList indexes, int depth, BSPNode oldNode) {
-        Int2IntOpenHashMap intersectionCounts = null;
-        IntOpenHashSet primaryIntersectorIndexes = null;
-        int primaryIntersectorThreshold = Mth.clamp(indexes.size() / 2, 2, 4);
-
-        int i = -1;
-        int j = 0;
-        final int quadCount = indexes.size();
-        int stepSize = Math.max(1, (quadCount * (quadCount - 1) / 2) / MAX_INTERSECTION_ATTEMPTS);
-        int variance = 0;
-
-        // if doing random stepping, subtract some and calculate the variance to apply
-        Random random = null;
-        if (stepSize > 1) {
-            int half = stepSize / 2;
-            stepSize = Math.max(1, stepSize - half);
-            variance = stepSize;
-            random = new Random();
-        }
-
-        while (true) {
-            // pick indexes in serial fashion without repeating pairs (i < j always holds)
-            i += stepSize;
-            if (variance > 0) {
-                i += random.nextInt(variance);
-            }
-
-            // step i and j until they're valid indexes with i < j
-            while (i >= j) {
-                i -= j;
-                j++;
-            }
-
-            // stop if we're out of indexes
-            if (j >= indexes.size()) {
-                break;
-            }
-
-            var quadA = workspace.quads[indexes.getInt(i)];
-            var quadB = workspace.quads[indexes.getInt(j)];
-
-            // aligned quads intersect if their bounding boxes intersect
-            if (TQuad.extentsIntersect(quadA, quadB)) {
-                if (intersectionCounts == null) {
-                    intersectionCounts = new Int2IntOpenHashMap();
-                }
-
-                int aCount = intersectionCounts.get(i) + 1;
-                intersectionCounts.put(i, aCount);
-                int bCount = intersectionCounts.get(j) + 1;
-                intersectionCounts.put(j, bCount);
-
-                if (aCount >= primaryIntersectorThreshold) {
-                    if (primaryIntersectorIndexes == null) {
-                        primaryIntersectorIndexes = new IntOpenHashSet(2);
-                    }
-                    primaryIntersectorIndexes.add(i);
-                }
-                if (bCount >= primaryIntersectorThreshold) {
-                    if (primaryIntersectorIndexes == null) {
-                        primaryIntersectorIndexes = new IntOpenHashSet(2);
-                    }
-                    primaryIntersectorIndexes.add(j);
-                }
-
-                // cancel primary intersector search if they all intersect with each other
-                if (primaryIntersectorIndexes != null && primaryIntersectorIndexes.size() == indexes.size()) {
-                    // return multi leaf node as this is impossible to sort
-                    return new LeafMultiBSPNode(BSPSortState.compressIndexes(indexes));
-                }
-            }
-        }
-
-        if (primaryIntersectorIndexes != null) {
-            // put the primary intersectors in a separate node that's always rendered last
-            var nonPrimaryIntersectors = new IntArrayList(indexes.size() - primaryIntersectorIndexes.size());
-            var primaryIntersectorQuadIndexes = new IntArrayList(primaryIntersectorIndexes.size());
-            for (int k = 0; k < indexes.size(); k++) {
-                if (primaryIntersectorIndexes.contains(k)) {
-                    primaryIntersectorQuadIndexes.add(indexes.getInt(k));
-                } else {
-                    nonPrimaryIntersectors.add(indexes.getInt(k));
-                }
-            }
-            return InnerFixedDoubleBSPNode.buildFromParts(workspace, indexes, depth, oldNode,
-                    nonPrimaryIntersectors, primaryIntersectorQuadIndexes);
-        }
-
-        // this means we didn't manage to find primary intersectors
-        return null;
     }
 
     private static class QuadIndexConsumerIntoArray implements IntConsumer {
@@ -585,5 +495,9 @@ abstract class InnerPartitionBSPNode extends BSPNode {
         }
 
         return new LeafMultiBSPNode(BSPSortState.compressIndexes(IntArrayList.wrap(quadIndexes), false));
+    }
+
+    static private BSPNode handleIntersecting(BSPWorkspace workspace, IntArrayList indexes, int depth, BSPNode oldNode) {
+        // TODO: read quads, perform intersection, split quads, write new quads back into buffer, construct TQuad objects, recurse
     }
 }

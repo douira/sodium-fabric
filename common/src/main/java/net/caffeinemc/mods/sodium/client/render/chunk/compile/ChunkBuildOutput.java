@@ -17,15 +17,13 @@ import java.util.Map;
 public class ChunkBuildOutput extends ChunkSortOutput {
     public final BuiltSectionInfo info;
     public final TranslucentData translucentData;
-    public final Map<TerrainRenderPass, BuiltSectionMeshParts> meshes;
+    public Map<TerrainRenderPass, BuiltSectionMeshParts> meshes;
 
-    public ChunkBuildOutput(RenderSection render, int buildTime, TranslucentData translucentData, BuiltSectionInfo info,
-            Map<TerrainRenderPass, BuiltSectionMeshParts> meshes) {
+    public ChunkBuildOutput(RenderSection render, int buildTime, TranslucentData translucentData, BuiltSectionInfo info) {
         super(render, buildTime);
 
         this.info = info;
         this.translucentData = translucentData;
-        this.meshes = meshes;
     }
 
     public BuiltSectionMeshParts getMesh(TerrainRenderPass pass) {
@@ -39,5 +37,9 @@ public class ChunkBuildOutput extends ChunkSortOutput {
         for (BuiltSectionMeshParts data : this.meshes.values()) {
             data.getVertexData().free();
         }
+    }
+
+    public void setMeshes(Map<TerrainRenderPass, BuiltSectionMeshParts> meshes) {
+        this.meshes = meshes;
     }
 }

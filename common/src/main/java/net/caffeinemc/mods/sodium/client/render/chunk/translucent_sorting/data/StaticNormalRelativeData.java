@@ -1,6 +1,5 @@
 package net.caffeinemc.mods.sodium.client.render.chunk.translucent_sorting.data;
 
-import net.caffeinemc.mods.sodium.client.render.chunk.data.BuiltSectionMeshParts;
 import net.caffeinemc.mods.sodium.client.render.chunk.translucent_sorting.SortType;
 import net.caffeinemc.mods.sodium.client.render.chunk.translucent_sorting.TQuad;
 import net.caffeinemc.mods.sodium.client.util.MathUtil;
@@ -12,7 +11,7 @@ import java.util.Arrays;
 /**
  * Static normal relative sorting orders quads by the dot product of their
  * normal and position. (referred to as "distance" throughout the code)
- *
+ * <p>
  * Unlike sorting by distance, which is descending for translucent rendering to
  * be correct, sorting by dot product is ascending instead.
  */
@@ -38,8 +37,8 @@ public class StaticNormalRelativeData extends SplitDirectionData {
         return sorter;
     }
 
-    private static StaticNormalRelativeData fromDoubleUnaligned(BuiltSectionMeshParts translucentMesh, TQuad[] quads, SectionPos sectionPos) {
-        var snrData = new StaticNormalRelativeData(sectionPos, translucentMesh.getVertexCounts(), quads.length);
+    private static StaticNormalRelativeData fromDoubleUnaligned(int[] vertexCounts, TQuad[] quads, SectionPos sectionPos) {
+        var snrData = new StaticNormalRelativeData(sectionPos, vertexCounts, quads.length);
         var sorter = new StaticSorter(quads.length);
         snrData.sorterOnce = sorter;
         var indexBuffer = sorter.getIntBuffer();
@@ -79,17 +78,16 @@ public class StaticNormalRelativeData extends SplitDirectionData {
     /**
      * Important: The vertex indexes must start at zero for each facing.
      */
-    private static StaticNormalRelativeData fromMixed(BuiltSectionMeshParts translucentMesh,
+    private static StaticNormalRelativeData fromMixed(int[] vertexCounts,
                                                       TQuad[] quads, SectionPos sectionPos) {
-        var snrData = new StaticNormalRelativeData(sectionPos, translucentMesh.getVertexCounts(), quads.length);
+        var snrData = new StaticNormalRelativeData(sectionPos, vertexCounts, quads.length);
         var sorter = new StaticSorter(quads.length);
         snrData.sorterOnce = sorter;
         var indexBuffer = sorter.getIntBuffer();
 
-        var counts = translucentMesh.getVertexCounts();
         var maxQuadCount = 0;
         boolean anyNeedsSortData = false;
-        for (var vertexCount : counts) {
+        for (var vertexCount : vertexCounts) {
             if (vertexCount != -1) {
                 var quadCount = TranslucentData.vertexCountToQuadCount(vertexCount);
                 maxQuadCount = Math.max(maxQuadCount, quadCount);
@@ -103,7 +101,7 @@ public class StaticNormalRelativeData extends SplitDirectionData {
         }
 
         int quadIndex = 0;
-        for (var vertexCount : counts) {
+        for (var vertexCount : vertexCounts) {
             if (vertexCount == -1 || vertexCount == 0) {
                 continue;
             }
@@ -145,12 +143,12 @@ public class StaticNormalRelativeData extends SplitDirectionData {
         return snrData;
     }
 
-    public static StaticNormalRelativeData fromMesh(BuiltSectionMeshParts translucentMesh,
-            TQuad[] quads, SectionPos sectionPos, boolean isDoubleUnaligned) {
+    public static StaticNormalRelativeData fromMesh(int[] vertexCounts,
+                                                    TQuad[] quads, SectionPos sectionPos, boolean isDoubleUnaligned) {
         if (isDoubleUnaligned) {
-            return fromDoubleUnaligned(translucentMesh, quads, sectionPos);
+            return fromDoubleUnaligned(vertexCounts, quads, sectionPos);
         } else {
-            return fromMixed(translucentMesh, quads, sectionPos);
+            return fromMixed(vertexCounts, quads, sectionPos);
         }
     }
 }

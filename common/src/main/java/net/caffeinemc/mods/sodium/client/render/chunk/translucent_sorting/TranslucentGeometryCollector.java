@@ -4,9 +4,11 @@ import it.unimi.dsi.fastutil.objects.ReferenceArrayList;
 import net.caffeinemc.mods.sodium.api.util.NormI8;
 import net.caffeinemc.mods.sodium.client.SodiumClientMod;
 import net.caffeinemc.mods.sodium.client.model.quad.properties.ModelQuadFacing;
+import net.caffeinemc.mods.sodium.client.render.chunk.compile.ChunkBuildBuffers;
 import net.caffeinemc.mods.sodium.client.render.chunk.compile.ChunkBuildOutput;
 import net.caffeinemc.mods.sodium.client.render.chunk.compile.pipeline.DefaultFluidRenderer;
 import net.caffeinemc.mods.sodium.client.render.chunk.data.BuiltSectionMeshParts;
+import net.caffeinemc.mods.sodium.client.render.chunk.terrain.DefaultTerrainRenderPasses;
 import net.caffeinemc.mods.sodium.client.render.chunk.translucent_sorting.bsp_tree.BSPBuildFailureException;
 import net.caffeinemc.mods.sodium.client.render.chunk.translucent_sorting.data.*;
 import net.caffeinemc.mods.sodium.client.render.chunk.translucent_sorting.trigger.GeometryPlanes;
@@ -461,21 +463,20 @@ public class TranslucentGeometryCollector {
         return this.sortType;
     }
 
-    private TranslucentData makeNewTranslucentData(BuiltSectionMeshParts translucentMesh, CombinedCameraPos cameraPos,
-                                                   TranslucentData oldData) {
+    private TranslucentData makeNewTranslucentData(TranslucentData oldData, ChunkBuildBuffers buffers,  CombinedCameraPos cameraPos, int[] vertexCounts) {
         if (this.sortType == SortType.NONE) {
-            return AnyOrderData.fromMesh(translucentMesh, this.quads, this.sectionPos);
+            return AnyOrderData.fromMesh(vertexCounts, this.quads, this.sectionPos);
         }
 
         if (this.sortType == SortType.STATIC_NORMAL_RELATIVE) {
             var isDoubleUnaligned = this.alignedFacingBitmap == 0;
-            return StaticNormalRelativeData.fromMesh(translucentMesh, this.quads, this.sectionPos, isDoubleUnaligned);
+            return StaticNormalRelativeData.fromMesh(vertexCounts, this.quads, this.sectionPos, isDoubleUnaligned);
         }
 
         // from this point on we know the estimated sort type requires direction mixing
         // (no backface culling) and all vertices are in the UNASSIGNED direction.
         if (this.sortType == SortType.STATIC_TOPO) {
-            var result = StaticTopoData.fromMesh(translucentMesh, this.quads, this.sectionPos);
+            var result = StaticTopoData.fromMesh(vertexCounts, this.quads, this.sectionPos);
             if (result != null) {
                 return result;
             }
@@ -486,17 +487,17 @@ public class TranslucentGeometryCollector {
         this.sortType = filterSortType(this.sortType);
 
         if (this.sortType == SortType.NONE) {
-            return AnyOrderData.fromMesh(translucentMesh, this.quads, this.sectionPos);
+            return AnyOrderData.fromMesh(vertexCounts, this.quads, this.sectionPos);
         }
 
         if (this.sortType == SortType.DYNAMIC) {
             try {
                 return DynamicBSPData.fromMesh(
-                        translucentMesh, cameraPos, this.quads, this.sectionPos, oldData);
+                        vertexCounts, cameraPos, this.quads, this.sectionPos, oldData, buffers);
             } catch (BSPBuildFailureException e) {
                 var geometryPlanes = GeometryPlanes.fromQuadLists(this.sectionPos, this.quads);
                 return DynamicTopoData.fromMesh(
-                        translucentMesh, cameraPos, this.quads, this.sectionPos,
+                        vertexCounts, cameraPos, this.quads, this.sectionPos,
                         geometryPlanes);
             }
         }
@@ -518,9 +519,11 @@ public class TranslucentGeometryCollector {
     }
 
     public TranslucentData getTranslucentData(
-            TranslucentData oldData, BuiltSectionMeshParts translucentMesh, CombinedCameraPos cameraPos) {
+            TranslucentData oldData, ChunkBuildBuffers buffers, CombinedCameraPos cameraPos) {
+        int[] initialVertexCounts = buffers.getVertexCounts(DefaultTerrainRenderPasses.TRANSLUCENT);
+
         // means there is no translucent geometry
-        if (translucentMesh == null) {
+        if (initialVertexCounts == null) {
             return NoData.forNoTranslucent(this.sectionPos);
         }
 
@@ -534,7 +537,7 @@ public class TranslucentGeometryCollector {
             // doesn't matter
             if (this.sortType == SortType.NONE && oldData instanceof AnyOrderData oldAnyData
                     && oldAnyData.getQuadCount() == this.quads.length
-                    && Arrays.equals(oldAnyData.getVertexCounts(), translucentMesh.getVertexCounts())) {
+                    && Arrays.equals(oldAnyData.getVertexCounts(), initialVertexCounts)) {
                 return oldAnyData;
             }
 
@@ -548,7 +551,7 @@ public class TranslucentGeometryCollector {
             }
         }
 
-        var newData = makeNewTranslucentData(translucentMesh, cameraPos, oldData);
+        var newData = makeNewTranslucentData(oldData, buffers, cameraPos, initialVertexCounts);
         if (newData instanceof PresentTranslucentData presentData) {
             presentData.setQuadHash(getQuadHash(this.quads));
         }

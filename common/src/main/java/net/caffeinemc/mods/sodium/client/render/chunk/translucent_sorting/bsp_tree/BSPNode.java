@@ -1,5 +1,6 @@
 package net.caffeinemc.mods.sodium.client.render.chunk.translucent_sorting.bsp_tree;
 
+import net.caffeinemc.mods.sodium.client.render.chunk.compile.ChunkBuildBuffers;
 import org.joml.Vector3fc;
 
 import it.unimi.dsi.fastutil.ints.IntArrayList;
@@ -32,13 +33,13 @@ public abstract class BSPNode {
     }
 
     public static BSPResult buildBSP(TQuad[] quads, SectionPos sectionPos, BSPNode oldRoot,
-            boolean prepareNodeReuse) {
+            boolean prepareNodeReuse, ChunkBuildBuffers buffers) {
         // throw if there's too many quads
         InnerPartitionBSPNode.validateQuadCount(quads.length);
 
         // create a workspace and then the nodes figure out the recursive building.
         // throws if the BSP can't be built, null if none is necessary
-        var workspace = new BSPWorkspace(quads, sectionPos, prepareNodeReuse);
+        var workspace = new BSPWorkspace(quads, sectionPos, prepareNodeReuse, buffers);
 
         // initialize the indexes to all quads
         int[] initialIndexes = new int[quads.length];
@@ -48,7 +49,7 @@ public abstract class BSPNode {
         var allIndexes = new IntArrayList(initialIndexes);
 
         var rootNode = BSPNode.build(workspace, allIndexes, -1, oldRoot);
-        var result = workspace.result;
+        var result = workspace.getResult();
         result.setRootNode(rootNode);
         return result;
     }
