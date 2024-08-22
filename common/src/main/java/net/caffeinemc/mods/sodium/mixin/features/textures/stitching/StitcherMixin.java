@@ -40,15 +40,6 @@ public class StitcherMixin<T extends Stitcher.Entry> {
 
     /**
      * @author douira
-     * @reason Return power of two (POT) value for sprite holder dimensions
-     */
-//    @Overwrite
-//    static int smallestFittingMinTexel(int dimension, int mipLevel) {
-//        return Mth.smallestEncompassingPowerOfTwo(dimension >> mipLevel);
-//    }
-
-    /**
-     * @author douira
      * @reason Stitch more efficiently using POT-sized sprite holders
      */
     @Inject(method = "stitch", at = @At("HEAD"), cancellable = true)
