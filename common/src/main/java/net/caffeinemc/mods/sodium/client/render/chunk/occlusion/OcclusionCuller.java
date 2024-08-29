@@ -18,6 +18,11 @@ public class OcclusionCuller {
 
     private final DoubleBufferedQueue<RenderSection> queue = new DoubleBufferedQueue<>();
 
+    // The bounding box of a chunk section must be large enough to contain all possible geometry within it. Block models
+    // can extend outside a block volume by +/- 1.0 blocks on all axis. Additionally, we make use of a small epsilon
+    // to deal with floating point imprecision during a frustum check (see GH#2132).
+    static final float CHUNK_SECTION_SIZE = 8.0f /* chunk bounds */ + 1.0f /* maximum model extent */ + 0.125f /* epsilon */;
+
     public OcclusionCuller(Long2ReferenceMap<RenderSection> sections, Level level) {
         this.sections = sections;
         this.level = level;
@@ -32,11 +37,14 @@ public class OcclusionCuller {
         final var queues = this.queue;
         queues.reset();
 
-        this.init(visitor, queues.write(), viewport, searchDistance, useOcclusionCulling, frame);
+        var collector = new LinearOctreeSectionCollector(this.sections, viewport, searchDistance);
+        this.init(collector, queues.write(), viewport, searchDistance, useOcclusionCulling, frame);
 
         while (queues.flip()) {
-            processQueue(visitor, viewport, searchDistance, useOcclusionCulling, frame, queues.read(), queues.write());
+            processQueue(collector, viewport, searchDistance, useOcclusionCulling, frame, queues.read(), queues.write());
         }
+
+        collector.traverseVisible(visitor, viewport);
     }
 
     private static void processQueue(Visitor visitor,
@@ -80,7 +88,8 @@ public class OcclusionCuller {
     }
 
     private static boolean isSectionVisible(RenderSection section, Viewport viewport, float maxDistance) {
-        return isWithinRenderDistance(viewport.getTransform(), section, maxDistance) && isWithinFrustum(viewport, section);
+        // TODO: fix
+        return isWithinRenderDistance(viewport.getTransform(), section, maxDistance); // && isWithinFrustum(viewport, section);
     }
 
     private static void visitNeighbors(final WriteQueue<RenderSection> queue, RenderSection section, int outgoing, int frame) {
@@ -175,11 +184,6 @@ public class OcclusionCuller {
         if (max < 0) { clamped = max; }
         return clamped;
     }
-
-    // The bounding box of a chunk section must be large enough to contain all possible geometry within it. Block models
-    // can extend outside a block volume by +/- 1.0 blocks on all axis. Additionally, we make use of a small epsilon
-    // to deal with floating point imprecision during a frustum check (see GH#2132).
-    private static final float CHUNK_SECTION_SIZE = 8.0f /* chunk bounds */ + 1.0f /* maximum model extent */ + 0.125f /* epsilon */;
 
     public static boolean isWithinFrustum(Viewport viewport, RenderSection section) {
         return viewport.isBoxVisible(section.getCenterX(), section.getCenterY(), section.getCenterZ(),
@@ -293,7 +297,9 @@ public class OcclusionCuller {
     private void tryVisitNode(WriteQueue<RenderSection> queue, int x, int y, int z, int direction, int frame, Viewport viewport) {
         RenderSection section = this.getRenderSection(x, y, z);
 
-        if (section == null || !isWithinFrustum(viewport, section)) {
+        // TODO: fix
+        // if (section == null || !isWithinFrustum(viewport, section)) {
+        if (section == null) {
             return;
         }
 
