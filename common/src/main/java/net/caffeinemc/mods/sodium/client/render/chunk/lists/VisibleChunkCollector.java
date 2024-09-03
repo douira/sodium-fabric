@@ -1,71 +1,53 @@
 package net.caffeinemc.mods.sodium.client.render.chunk.lists;
 
+import it.unimi.dsi.fastutil.longs.Long2ReferenceMap;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
-import net.caffeinemc.mods.sodium.client.render.chunk.ChunkUpdateType;
-import net.caffeinemc.mods.sodium.client.render.chunk.RenderSection;
-import net.caffeinemc.mods.sodium.client.render.chunk.occlusion.OcclusionCuller;
+import net.caffeinemc.mods.sodium.client.render.chunk.LocalSectionIndex;
+import net.caffeinemc.mods.sodium.client.render.chunk.occlusion.LinearSectionOctree;
 import net.caffeinemc.mods.sodium.client.render.chunk.region.RenderRegion;
-
-import java.util.*;
+import net.caffeinemc.mods.sodium.client.render.chunk.region.RenderRegionManager;
+import net.minecraft.core.SectionPos;
 
 /**
  * The visible chunk collector is passed to the occlusion graph search culler to
  * collect the visible chunks.
  */
-public class VisibleChunkCollector implements OcclusionCuller.Visitor {
+public class VisibleChunkCollector implements LinearSectionOctree.VisibleSectionVisitor {
     private final ObjectArrayList<ChunkRenderList> sortedRenderLists;
-    private final EnumMap<ChunkUpdateType, ArrayDeque<RenderSection>> sortedRebuildLists;
+
+    private final RenderRegionManager regions;
 
     private final int frame;
 
-    public VisibleChunkCollector(int frame) {
+    public VisibleChunkCollector(RenderRegionManager regions, int frame) {
+        this.regions = regions;
         this.frame = frame;
 
         this.sortedRenderLists = new ObjectArrayList<>();
-        this.sortedRebuildLists = new EnumMap<>(ChunkUpdateType.class);
-
-        for (var type : ChunkUpdateType.values()) {
-            this.sortedRebuildLists.put(type, new ArrayDeque<>());
-        }
     }
 
     @Override
-    public void visit(RenderSection section, boolean visible) {
-        RenderRegion region = section.getRegion();
+    public void visit(int x, int y, int z) {
+        var region = this.regions.getForChunk(x, y, z);
+        int rX = x & (RenderRegion.REGION_WIDTH - 1);
+        int rY = y & (RenderRegion.REGION_HEIGHT - 1);
+        int rZ = z & (RenderRegion.REGION_LENGTH - 1);
+        var sectionIndex = LocalSectionIndex.pack(rX, rY, rZ);
+
         ChunkRenderList renderList = region.getRenderList();
 
-        // Even if a section does not have render objects, we must ensure the render list is initialized and put
-        // into the sorted queue of lists, so that we maintain the correct order of draw calls.
         if (renderList.getLastVisibleFrame() != this.frame) {
             renderList.reset(this.frame);
 
             this.sortedRenderLists.add(renderList);
         }
 
-        if (visible && section.getFlags() != 0) {
-            renderList.add(section);
-        }
-
-        this.addToRebuildLists(section);
-    }
-
-    private void addToRebuildLists(RenderSection section) {
-        ChunkUpdateType type = section.getPendingUpdate();
-
-        if (type != null && section.getTaskCancellationToken() == null) {
-            Queue<RenderSection> queue = this.sortedRebuildLists.get(type);
-
-            if (queue.size() < type.getMaximumQueueSize()) {
-                queue.add(section);
-            }
+        if (region.getSectionFlags(sectionIndex) != 0) {
+            renderList.add(sectionIndex);
         }
     }
 
     public SortedRenderLists createRenderLists() {
         return new SortedRenderLists(this.sortedRenderLists);
-    }
-
-    public Map<ChunkUpdateType, ArrayDeque<RenderSection>> getRebuildLists() {
-        return this.sortedRebuildLists;
     }
 }

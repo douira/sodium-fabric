@@ -43,11 +43,6 @@ public class RenderSection {
 
 
     // Rendering State
-    private boolean built = false; // merge with the flags?
-    private int flags = RenderSectionFlags.NONE;
-    private BlockEntity @Nullable[] globalBlockEntities;
-    private BlockEntity @Nullable[] culledBlockEntities;
-    private TextureAtlasSprite @Nullable[] animatedSprites;
     @Nullable
     private TranslucentData translucentData;
 
@@ -72,7 +67,6 @@ public class RenderSection {
         int rX = this.getChunkX() & (RenderRegion.REGION_WIDTH - 1);
         int rY = this.getChunkY() & (RenderRegion.REGION_HEIGHT - 1);
         int rZ = this.getChunkZ() & (RenderRegion.REGION_LENGTH - 1);
-
         this.sectionIndex = LocalSectionIndex.pack(rX, rY, rZ);
 
         this.region = region;
@@ -148,21 +142,13 @@ public class RenderSection {
     }
 
     private void setRenderState(@NotNull BuiltSectionInfo info) {
-        this.built = true;
-        this.flags = info.flags;
+        this.region.setSectionRenderState(this.sectionIndex, info);
         this.visibilityData = info.visibilityData;
-        this.globalBlockEntities = info.globalBlockEntities;
-        this.culledBlockEntities = info.culledBlockEntities;
-        this.animatedSprites = info.animatedSprites;
     }
 
     private void clearRenderState() {
-        this.built = false;
-        this.flags = RenderSectionFlags.NONE;
+        this.region.clearSectionRenderState(this.sectionIndex);
         this.visibilityData = VisibilityEncoding.NULL;
-        this.globalBlockEntities = null;
-        this.culledBlockEntities = null;
-        this.animatedSprites = null;
     }
 
     /**
@@ -258,7 +244,7 @@ public class RenderSection {
     }
 
     public boolean isBuilt() {
-        return this.built;
+        return (this.region.getSectionFlags(this.sectionIndex) & RenderSectionFlags.MASK_IS_BUILT) != 0;
     }
 
     public int getSectionIndex() {
@@ -290,39 +276,10 @@ public class RenderSection {
     }
 
     /**
-     * Returns a bitfield containing the {@link RenderSectionFlags} for this built section.
-     */
-    public int getFlags() {
-        return this.flags;
-    }
-
-    /**
      * Returns the occlusion culling data which determines this chunk's connectedness on the visibility graph.
      */
     public long getVisibilityData() {
         return this.visibilityData;
-    }
-
-    /**
-     * Returns the collection of animated sprites contained by this rendered chunk section.
-     */
-    public TextureAtlasSprite @Nullable[] getAnimatedSprites() {
-        return this.animatedSprites;
-    }
-
-    /**
-     * Returns the collection of block entities contained by this rendered chunk.
-     */
-    public BlockEntity @Nullable[] getCulledBlockEntities() {
-        return this.culledBlockEntities;
-    }
-
-    /**
-     * Returns the collection of block entities contained by this rendered chunk, which are not part of its culling
-     * volume. These entities should always be rendered regardless of the render being visible in the frustum.
-     */
-    public BlockEntity @Nullable[] getGlobalBlockEntities() {
-        return this.globalBlockEntities;
     }
 
     public @Nullable CancellationToken getTaskCancellationToken() {
