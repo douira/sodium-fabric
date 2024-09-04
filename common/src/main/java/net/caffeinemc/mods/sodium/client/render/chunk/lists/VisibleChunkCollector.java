@@ -1,12 +1,10 @@
 package net.caffeinemc.mods.sodium.client.render.chunk.lists;
 
-import it.unimi.dsi.fastutil.longs.Long2ReferenceMap;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import net.caffeinemc.mods.sodium.client.render.chunk.LocalSectionIndex;
 import net.caffeinemc.mods.sodium.client.render.chunk.occlusion.LinearSectionOctree;
 import net.caffeinemc.mods.sodium.client.render.chunk.region.RenderRegion;
 import net.caffeinemc.mods.sodium.client.render.chunk.region.RenderRegionManager;
-import net.minecraft.core.SectionPos;
 
 /**
  * The visible chunk collector is passed to the occlusion graph search culler to
@@ -42,9 +40,8 @@ public class VisibleChunkCollector implements LinearSectionOctree.VisibleSection
             this.sortedRenderLists.add(renderList);
         }
 
-        if (region.getSectionFlags(sectionIndex) != 0) {
-            renderList.add(sectionIndex);
-        }
+        // flags don't need to be checked here since only sections with contents (RenderSectionFlags.MASK_NEEDS_RENDER) are added to the octree
+        renderList.add(sectionIndex);
     }
 
     public SortedRenderLists createRenderLists() {
