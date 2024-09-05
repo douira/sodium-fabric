@@ -2,7 +2,10 @@ package net.caffeinemc.mods.sodium.client.render.chunk.lists;
 
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import net.caffeinemc.mods.sodium.client.render.chunk.LocalSectionIndex;
+import net.caffeinemc.mods.sodium.client.render.chunk.RenderSection;
+import net.caffeinemc.mods.sodium.client.render.chunk.RenderSectionFlags;
 import net.caffeinemc.mods.sodium.client.render.chunk.occlusion.LinearSectionOctree;
+import net.caffeinemc.mods.sodium.client.render.chunk.occlusion.OcclusionCuller;
 import net.caffeinemc.mods.sodium.client.render.chunk.region.RenderRegion;
 import net.caffeinemc.mods.sodium.client.render.chunk.region.RenderRegionManager;
 
@@ -10,14 +13,14 @@ import net.caffeinemc.mods.sodium.client.render.chunk.region.RenderRegionManager
  * The visible chunk collector is passed to the occlusion graph search culler to
  * collect the visible chunks.
  */
-public class VisibleChunkCollector implements LinearSectionOctree.VisibleSectionVisitor {
+public class VisibleChunkCollectorAsync implements LinearSectionOctree.VisibleSectionVisitor  {
     private final ObjectArrayList<ChunkRenderList> sortedRenderLists;
 
     private final RenderRegionManager regions;
 
     private final int frame;
 
-    public VisibleChunkCollector(RenderRegionManager regions, int frame) {
+    public VisibleChunkCollectorAsync(RenderRegionManager regions, int frame) {
         this.regions = regions;
         this.frame = frame;
 
@@ -27,6 +30,12 @@ public class VisibleChunkCollector implements LinearSectionOctree.VisibleSection
     @Override
     public void visit(int x, int y, int z) {
         var region = this.regions.getForChunk(x, y, z);
+
+        // since this is async, the region might have been removed in the meantime
+        if (region == null) {
+            return;
+        }
+
         int rX = x & (RenderRegion.REGION_WIDTH - 1);
         int rY = y & (RenderRegion.REGION_HEIGHT - 1);
         int rZ = z & (RenderRegion.REGION_LENGTH - 1);
