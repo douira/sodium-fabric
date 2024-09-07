@@ -232,7 +232,7 @@ public class SodiumWorldRenderer {
 
             this.renderSectionManager.uploadChunks();
 
-            if (!this.renderSectionManager.needsGraphUpdate()) {
+            if (!this.renderSectionManager.needsUpdate()) {
                 break;
             }
         }
