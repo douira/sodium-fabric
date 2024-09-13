@@ -203,7 +203,7 @@ public class SodiumWorldRenderer {
         this.lastCameraYaw = yaw;
 
         if (cameraLocationChanged || cameraAngleChanged || cameraProjectionChanged) {
-            this.renderSectionManager.markRenderListDirty();
+            this.renderSectionManager.notifyChangedCamera();
         }
 
         this.lastFogDistance = fogDistance;
