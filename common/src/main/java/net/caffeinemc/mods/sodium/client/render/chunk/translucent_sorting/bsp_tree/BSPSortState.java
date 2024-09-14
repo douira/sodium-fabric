@@ -5,6 +5,8 @@ import java.lang.Math;
 
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntConsumer;
+import net.caffeinemc.mods.sodium.client.render.measurement.Counter;
+import net.caffeinemc.mods.sodium.client.render.measurement.Measurement;
 import net.caffeinemc.mods.sodium.client.render.chunk.translucent_sorting.data.TranslucentData;
 import net.caffeinemc.mods.sodium.client.util.NativeBuffer;
 
@@ -114,8 +116,16 @@ class BSPSortState {
      * 6x5b, 8x4b, 10x3b, 16x2b, 32x1b
      */
     static int[] compressIndexes(IntArrayList indexes, boolean doSort) {
+        if (Measurement.DEBUG_COMPRESSION_STATS) {
+            Counter.COMPRESSION_CANDIDATES.increment();
+            Counter.UNCOMPRESSED_SIZE.incrementBy(indexes.size());
+        }
+
         // bail on short lists
         if (isOutOfBounds(indexes.size())) {
+            if (Measurement.DEBUG_COMPRESSION_STATS) {
+                Counter.COMPRESSED_SIZE.incrementBy(indexes.size());
+            }
             return indexes.toIntArray();
         }
 
@@ -148,6 +158,9 @@ class BSPSortState {
         // stop if the first index is too large
         int firstIndex = workingList.getInt(0);
         if (firstIndex > 1 << 17) {
+            if (Measurement.DEBUG_COMPRESSION_STATS) {
+                Counter.COMPRESSED_SIZE.incrementBy(indexes.size());
+            }
             return indexes.toIntArray();
         }
 
@@ -162,11 +175,18 @@ class BSPSortState {
             compressed[0] = 1 << 31 | CONSTANT_DELTA_WIDTH_INDEX << 27 | deltaCount << 17 | firstIndex;
             compressed[1] = minDelta;
 
+            if (Measurement.DEBUG_COMPRESSION_STATS) {
+                Counter.COMPRESSION_SUCCESS.increment();
+                Counter.COMPRESSED_SIZE.incrementBy(2);
+            }
             return compressed;
         }
 
         // stop if the width is too large (and compression would make no sense)
         if (deltaRangeWidth > 16) {
+            if (Measurement.DEBUG_COMPRESSION_STATS) {
+                Counter.COMPRESSED_SIZE.incrementBy(indexes.size());
+            }
             return indexes.toIntArray();
         }
 
@@ -207,6 +227,10 @@ class BSPSortState {
             compressed[outputIndex++] = gatherInt;
         }
 
+        if (Measurement.DEBUG_COMPRESSION_STATS) {
+            Counter.COMPRESSION_SUCCESS.increment();
+            Counter.COMPRESSED_SIZE.incrementBy(size);
+        }
         return compressed;
     }
 

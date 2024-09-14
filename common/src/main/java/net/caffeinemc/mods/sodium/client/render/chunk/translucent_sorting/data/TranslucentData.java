@@ -4,6 +4,7 @@ import java.nio.IntBuffer;
 
 import net.caffeinemc.mods.sodium.client.model.quad.properties.ModelQuadFacing;
 import net.caffeinemc.mods.sodium.client.render.chunk.translucent_sorting.SortType;
+import net.caffeinemc.mods.sodium.client.render.measurement.HeuristicType;
 import net.minecraft.core.SectionPos;
 
 /**
@@ -17,6 +18,7 @@ public abstract class TranslucentData {
     public static final int BYTES_PER_QUAD = INDICES_PER_QUAD * BYTES_PER_INDEX;
 
     public final SectionPos sectionPos;
+    public HeuristicType heuristicType;
 
     TranslucentData(SectionPos sectionPos) {
         this.sectionPos = sectionPos;

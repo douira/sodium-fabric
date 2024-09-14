@@ -20,6 +20,7 @@ import net.caffeinemc.mods.sodium.client.render.chunk.translucent_sorting.SortTy
 import net.caffeinemc.mods.sodium.client.render.chunk.translucent_sorting.TranslucentGeometryCollector;
 import net.caffeinemc.mods.sodium.client.render.chunk.translucent_sorting.data.PresentTranslucentData;
 import net.caffeinemc.mods.sodium.client.render.chunk.translucent_sorting.data.TranslucentData;
+import net.caffeinemc.mods.sodium.client.render.measurement.TimingRecorder;
 import net.caffeinemc.mods.sodium.client.services.PlatformLevelRenderHooks;
 import net.caffeinemc.mods.sodium.client.util.task.CancellationToken;
 import net.caffeinemc.mods.sodium.client.world.LevelSlice;
@@ -55,8 +56,15 @@ public class ChunkBuilderMeshingTask extends ChunkBuilderTask<ChunkBuildOutput> 
         this.renderContext = renderContext;
     }
 
+    // NOTE: removed quad counting and timing during merge
+    private static final TimingRecorder meshingRecorder = new TimingRecorder("Meshing");
+    private static final TimingRecorder opaqueMeshingRecorder = new TimingRecorder("Opaque-only Meshing");
+    private static final TimingRecorder translucentMeshingRecorder = new TimingRecorder("Translucent-containing Meshing");
+
     @Override
     public ChunkBuildOutput execute(ChunkBuildContext buildContext, CancellationToken cancellationToken) {
+        var start = System.nanoTime();
+
         BuiltSectionInfo.Builder renderData = new BuiltSectionInfo.Builder();
         VisGraph occluder = new VisGraph();
 

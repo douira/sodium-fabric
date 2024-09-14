@@ -123,6 +123,21 @@ public class GeometryPlanes {
         return distancesByNormal;
     }
 
+    public int countUniqueTriggers() {
+        int count = 0;
+        if (this.alignedPlanes != null) {
+            for (var normalPlanes : this.alignedPlanes) {
+                if (normalPlanes != null) {
+                    count++;
+                }
+            }
+        }
+        if (this.unalignedPlanes != null) {
+            count += this.unalignedPlanes.size();
+        }
+        return count;
+    }
+
     public static GeometryPlanes fromQuadLists(SectionPos sectionPos, TQuad[] quads) {
         var geometryPlanes = new GeometryPlanes();
         for (var quad : quads) {

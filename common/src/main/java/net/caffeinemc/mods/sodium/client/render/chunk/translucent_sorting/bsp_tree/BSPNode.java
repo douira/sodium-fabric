@@ -1,5 +1,6 @@
 package net.caffeinemc.mods.sodium.client.render.chunk.translucent_sorting.bsp_tree;
 
+import net.caffeinemc.mods.sodium.client.render.measurement.Counter;
 import org.joml.Vector3fc;
 
 import it.unimi.dsi.fastutil.ints.IntArrayList;
@@ -66,6 +67,7 @@ public abstract class BSPNode {
             if (NormI8.isOpposite(packedNormalA, packedNormalB)
                     // same normal and same distance
                     || packedNormalA == packedNormalB && quadA.getDotProduct() == quadB.getDotProduct()) {
+                Counter.HEURISTIC_BSP_OPPOSING_UNALIGNED.increment();
                 return true;
             }
         }

@@ -8,6 +8,8 @@ import it.unimi.dsi.fastutil.objects.Reference2ReferenceLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet;
 import it.unimi.dsi.fastutil.objects.ReferenceSet;
 import it.unimi.dsi.fastutil.objects.ReferenceSets;
+import net.caffeinemc.mods.sodium.client.render.measurement.Counter;
+import net.caffeinemc.mods.sodium.client.render.measurement.Measurement;
 import net.caffeinemc.mods.sodium.client.SodiumClientMod;
 import net.caffeinemc.mods.sodium.client.gl.device.CommandList;
 import net.caffeinemc.mods.sodium.client.gl.device.RenderDevice;
@@ -166,9 +168,8 @@ public class RenderSectionManager {
         final boolean useOcclusionCulling;
         BlockPos origin = camera.getBlockPosition();
 
-        if (spectator && this.level.getBlockState(origin)
-                .isSolidRender(this.level, origin))
-        {
+        if (Measurement.DEBUG_DISABLE_OCCLUSION_CULLING || spectator && this.level.getBlockState(origin)
+                .isSolidRender(this.level, origin)) {
             useOcclusionCulling = false;
         } else {
             useOcclusionCulling = Minecraft.getInstance().smartCull;
@@ -301,7 +302,11 @@ public class RenderSectionManager {
         // (sort results never change the graph)
         // generally there's no sort results without a camera movement, which would also trigger
         // a graph update, but it can sometimes happen because of async task execution
-        this.needsGraphUpdate = this.needsGraphUpdate || this.processChunkBuildResults(results);
+        boolean touchedSectionInfo = this.processChunkBuildResults(results);
+        if (!touchedSectionInfo) {
+            Counter.UPLOADS_WITHOUT_GRAPH_UPDATE_REQUIRED.increment();
+        }
+        this.needsGraphUpdate = this.needsGraphUpdate || touchedSectionInfo;
 
         for (var result : results) {
             result.destroy();
@@ -576,7 +581,7 @@ public class RenderSectionManager {
 
         if (section != null) {
             var pendingUpdate = ChunkUpdateType.SORT;
-            var priorityMode = SodiumClientMod.options().performance.getSortBehavior().getPriorityMode();
+            var priorityMode = SodiumClientMod.options().performance.sortBehavior.getPriorityMode();
             if (priorityMode == PriorityMode.ALL
                     || priorityMode == PriorityMode.NEARBY && this.shouldPrioritizeTask(section, NEARBY_SORT_DISTANCE)) {
                 pendingUpdate = ChunkUpdateType.IMPORTANT_SORT;

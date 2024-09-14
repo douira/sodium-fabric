@@ -18,6 +18,7 @@ import net.caffeinemc.mods.sodium.client.render.chunk.map.ChunkTracker;
 import net.caffeinemc.mods.sodium.client.render.chunk.map.ChunkTrackerHolder;
 import net.caffeinemc.mods.sodium.client.render.chunk.terrain.DefaultTerrainRenderPasses;
 import net.caffeinemc.mods.sodium.client.render.chunk.translucent_sorting.trigger.CameraMovement;
+import net.caffeinemc.mods.sodium.client.render.measurement.Measurement;
 import net.caffeinemc.mods.sodium.client.render.viewport.Viewport;
 import net.caffeinemc.mods.sodium.client.services.PlatformBlockAccess;
 import net.caffeinemc.mods.sodium.client.util.NativeBuffer;
@@ -66,6 +67,7 @@ public class SodiumWorldRenderer {
     private boolean useEntityCulling;
 
     private RenderSectionManager renderSectionManager;
+    public final Measurement measurement = new Measurement();
 
     /**
      * @return The SodiumWorldRenderer based on the current dimension
@@ -168,7 +170,7 @@ public class SodiumWorldRenderer {
 
         this.useEntityCulling = SodiumClientMod.options().performance.useEntityCulling;
 
-        if (this.client.options.getEffectiveRenderDistance() != this.renderDistance) {
+        if (this.client.options.getEffectiveRenderDistance() != this.renderDistance || this.measurement.shouldReloadWorld()) {
             this.reload();
         }
 
@@ -222,9 +224,12 @@ public class SodiumWorldRenderer {
 
         for (int i = 0; i < maxChunkUpdates; i++) {
             if (this.renderSectionManager.needsUpdate()) {
+                this.measurement.registerFrame(true);
                 profiler.popPush("chunk_render_lists");
 
                 this.renderSectionManager.update(camera, viewport, spectator);
+            } else {
+                this.measurement.registerFrame(false);
             }
 
             profiler.popPush("chunk_update");
@@ -282,6 +287,8 @@ public class SodiumWorldRenderer {
             this.renderSectionManager.destroy();
             this.renderSectionManager = null;
         }
+
+        this.measurement.reset();
 
         this.renderDistance = this.client.options.getEffectiveRenderDistance();
 

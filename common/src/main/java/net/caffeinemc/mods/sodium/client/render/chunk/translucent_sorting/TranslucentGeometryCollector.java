@@ -1,6 +1,9 @@
 package net.caffeinemc.mods.sodium.client.render.chunk.translucent_sorting;
 
 import it.unimi.dsi.fastutil.objects.ReferenceArrayList;
+import net.caffeinemc.mods.sodium.client.render.measurement.Counter;
+import net.caffeinemc.mods.sodium.client.render.measurement.HeuristicType;
+import net.caffeinemc.mods.sodium.client.render.measurement.Measurement;
 import net.caffeinemc.mods.sodium.api.util.NormI8;
 import net.caffeinemc.mods.sodium.client.SodiumClientMod;
 import net.caffeinemc.mods.sodium.client.model.quad.properties.ModelQuadFacing;
@@ -12,6 +15,7 @@ import net.caffeinemc.mods.sodium.client.render.chunk.translucent_sorting.data.*
 import net.caffeinemc.mods.sodium.client.render.chunk.translucent_sorting.trigger.GeometryPlanes;
 import net.caffeinemc.mods.sodium.client.render.chunk.translucent_sorting.trigger.SortTriggering;
 import net.caffeinemc.mods.sodium.client.render.chunk.vertex.format.ChunkVertexEncoder;
+import net.caffeinemc.mods.sodium.client.util.NativeBuffer;
 import net.minecraft.core.SectionPos;
 import net.minecraft.util.Mth;
 import org.joml.Vector3f;
@@ -89,6 +93,8 @@ public class TranslucentGeometryCollector {
 
     private boolean quadHashPresent = false;
     private int quadHash = 0;
+
+    public HeuristicType heuristicType;
 
     public TranslucentGeometryCollector(SectionPos sectionPos) {
         this.sectionPos = sectionPos;
@@ -325,6 +331,7 @@ public class TranslucentGeometryCollector {
 
         SortBehavior sortBehavior = SodiumClientMod.options().performance.getSortBehavior();
         if (sortBehavior.getSortMode() == SortBehavior.SortMode.NONE) {
+            this.heuristicType = HeuristicType.EMPTY;
             return SortType.NONE;
         }
 
@@ -343,6 +350,7 @@ public class TranslucentGeometryCollector {
 
         // special case A
         if (planeCount <= 1) {
+            this.heuristicType = HeuristicType.SINGLE_PLANE;
             return SortType.NONE;
         }
 
@@ -354,6 +362,7 @@ public class TranslucentGeometryCollector {
             // each only have one distance, there is no way to see through one face to the
             // other.
             if (planeCount == 2 && opposingAlignedNormals) {
+                this.heuristicType = HeuristicType.OPPOSING_ALIGNED;
                 return SortType.NONE;
             }
 
@@ -375,6 +384,8 @@ public class TranslucentGeometryCollector {
                     }
                 }
                 if (passesBoundingBoxTest) {
+                    Counter.HEURISTIC_BOUNDING_BOX.increment();
+                    this.heuristicType = HeuristicType.ALIGNED_TO_BOUNDING_BOX;
                     return SortType.NONE;
                 }
             }
@@ -384,18 +395,23 @@ public class TranslucentGeometryCollector {
             // is necessary. Without static sorting, the geometry to trigger on could be
             // reduced but this isn't done here as we assume static sorting is possible.
             if (opposingAlignedNormals || alignedNormalCount == 1) {
+                this.heuristicType = HeuristicType.SNR_ALIGNED;
                 return SortType.STATIC_NORMAL_RELATIVE;
             }
         } else if (alignedNormalCount == 0) {
             // special case D but for one normal or two opposing unaligned normals
             if (unalignedNormalCount == 1
                     || unalignedNormalCount == 2 && NormI8.isOpposite(this.unalignedANormal, this.unalignedBNormal)) {
+                Counter.HEURISTIC_OPPOSING_UNALIGNED.increment();
+                this.heuristicType = HeuristicType.SNR_UNALIGNED;
                 return SortType.STATIC_NORMAL_RELATIVE;
             }
         } else if (planeCount == 2) { // implies normalCount == 2
             // special case D with mixed aligned and unaligned normals
             int alignedDirection = Integer.numberOfTrailingZeros(this.alignedFacingBitmap);
             if (NormI8.isOpposite(this.unalignedANormal, ModelQuadFacing.PACKED_ALIGNED_NORMALS[alignedDirection])) {
+                Counter.HEURISTIC_OPPOSING_UNALIGNED.increment();
+                this.heuristicType = HeuristicType.SNR_MIXED;
                 return SortType.STATIC_NORMAL_RELATIVE;
             }
         }
@@ -405,6 +421,7 @@ public class TranslucentGeometryCollector {
 
         var attemptLimitIndex = Mth.clamp(normalCount, 2, STATIC_TOPO_SORT_ATTEMPT_LIMITS.length - 1);
         if (this.quads.length <= STATIC_TOPO_SORT_ATTEMPT_LIMITS[attemptLimitIndex]) {
+            this.heuristicType = HeuristicType.STATIC_TOPO;
             return SortType.STATIC_TOPO;
         }
 
@@ -457,7 +474,12 @@ public class TranslucentGeometryCollector {
         }
         this.quadLists = null; // they're not needed anymore
 
-        this.sortType = filterSortType(sortTypeHeuristic());
+        var heuristicSortType = sortTypeHeuristic();
+        var counter = Counter.fromHeuristicType(this.heuristicType);
+        if (counter != null) {
+            counter.increment();
+        }
+        this.sortType = filterSortType(heuristicSortType);
         return this.sortType;
     }
 
@@ -500,6 +522,7 @@ public class TranslucentGeometryCollector {
             return AnyOrderData.fromMesh(vertexCounts, this.quads, this.sectionPos);
         }
 
+        // NOTE: removed DEBUG_NO_BSP implementation during merge
         if (this.sortType == SortType.DYNAMIC) {
             var vertexCount = ensureUnassignedVertexCount(vertexCounts);
             try {
@@ -565,6 +588,9 @@ public class TranslucentGeometryCollector {
         var newData = makeNewTranslucentData(vertexCounts, cameraPos, oldData);
         if (newData instanceof PresentTranslucentData presentData) {
             presentData.setQuadHash(getQuadHash(this.quads));
+        }
+        if (this.heuristicType != null) {
+            newData.heuristicType = this.heuristicType;
         }
         return newData;
     }

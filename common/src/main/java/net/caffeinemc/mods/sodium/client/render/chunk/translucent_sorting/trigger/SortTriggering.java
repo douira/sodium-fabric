@@ -3,6 +3,8 @@ package net.caffeinemc.mods.sodium.client.render.chunk.translucent_sorting.trigg
 import java.util.List;
 import java.util.function.BiConsumer;
 
+import net.caffeinemc.mods.sodium.client.render.chunk.translucent_sorting.data.PresentTranslucentData;
+import net.caffeinemc.mods.sodium.client.render.chunk.translucent_sorting.data.TranslucentData;
 import net.caffeinemc.mods.sodium.client.render.chunk.translucent_sorting.SortBehavior;
 import net.caffeinemc.mods.sodium.client.render.chunk.translucent_sorting.data.DynamicData;
 import org.joml.Vector3dc;
@@ -19,10 +21,10 @@ import net.minecraft.core.SectionPos;
  * This class is a central point in translucency sorting. It counts the number
  * of translucent data objects for each sort type and delegates triggering of
  * sections for dynamic sorting to the trigger components.
- * 
+ *
  * TODO:
  * - investigate why there's a similar number of STA and DYN sections. This might be normal, the counters might be broken or the heuristic is actually wrong.
- * 
+ *
  * @author douira (the translucent_sorting package)
  */
 public class SortTriggering {
@@ -56,6 +58,7 @@ public class SortTriggering {
      * A map of the number of times each sort type is currently in use.
      */
     private final int[] sortTypeCounters = new int[SortType.values().length];
+    private final long[] sortTypePersistedBytes = new long[SortType.values().length];
 
     private final GFNITriggers gfni = new GFNITriggers();
     private final DirectTriggers direct = new DirectTriggers();
@@ -70,7 +73,7 @@ public class SortTriggering {
 
     /**
      * Triggers the sections that the given camera movement crosses face planes of.
-     * 
+     *
      * @param triggerSectionCallback called for each section that is triggered
      * @param movement               the camera movement to trigger for
      */
@@ -155,18 +158,26 @@ public class SortTriggering {
 
     private void decrementSortTypeCounter(TranslucentData oldData) {
         if (oldData != null) {
-            this.sortTypeCounters[oldData.getSortType().ordinal()]--;
+            var index = oldData.getSortType().ordinal();
+            this.sortTypeCounters[index]--;
+            if (oldData instanceof PresentTranslucentData presentData) {
+                this.sortTypePersistedBytes[index] -= TranslucentData.quadCountToIndexBytes(presentData.getLength());
+            }
         }
     }
 
     private void incrementSortTypeCounter(TranslucentData newData) {
-        this.sortTypeCounters[newData.getSortType().ordinal()]++;
+        var index = newData.getSortType().ordinal();
+        this.sortTypeCounters[index]++;
+        if (newData instanceof PresentTranslucentData presentData) {
+            this.sortTypePersistedBytes[index] += TranslucentData.quadCountToIndexBytes(presentData.getLength());
+        }
     }
 
     /**
      * Removes a section from direct and GFNI triggering. This removes all its face
      * planes.
-     * 
+     *
      * @param oldData    the data of the section to remove
      * @param sectionPos the section to remove
      */
@@ -234,12 +245,16 @@ public class SortTriggering {
                     this.triggeredNormalCount,
                     this.gfniTriggerCount,
                     this.directTriggerCount));
-            list.add("N=%05d SNR=%05d STA=%05d DYN=%05d (DIR=%02d)".formatted(
+            list.add("E=%05d O=%05d N=%05d SNR=%05d STA=%05d DYN=%05d (DIR=%02d)".formatted(
+                    this.sortTypeCounters[SortType.EMPTY_SECTION.ordinal()],
+                    this.sortTypeCounters[SortType.NO_TRANSLUCENT.ordinal()],
                     this.sortTypeCounters[SortType.NONE.ordinal()],
                     this.sortTypeCounters[SortType.STATIC_NORMAL_RELATIVE.ordinal()],
                     this.sortTypeCounters[SortType.STATIC_TOPO.ordinal()],
                     this.sortTypeCounters[SortType.DYNAMIC.ordinal()],
                     this.direct.getDirectTriggerCount()));
+            list.add("TS Buffers: DYN=%05dKiB".formatted(
+                    this.sortTypePersistedBytes[SortType.DYNAMIC.ordinal()] / 1024));
         }
     }
 }

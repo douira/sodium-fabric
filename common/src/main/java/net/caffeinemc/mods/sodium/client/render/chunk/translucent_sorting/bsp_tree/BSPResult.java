@@ -8,6 +8,7 @@ import net.caffeinemc.mods.sodium.client.render.chunk.translucent_sorting.trigge
  */
 public class BSPResult extends GeometryPlanes {
     private BSPNode rootNode;
+    int uniqueTriggers = 0;
 
     public BSPNode getRootNode() {
         return this.rootNode;
@@ -15,5 +16,9 @@ public class BSPResult extends GeometryPlanes {
 
     public void setRootNode(BSPNode rootNode) {
         this.rootNode = rootNode;
+    }
+
+    public int getUniqueTriggers() {
+        return this.uniqueTriggers;
     }
 }

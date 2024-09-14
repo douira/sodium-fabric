@@ -13,6 +13,8 @@ import net.caffeinemc.mods.sodium.client.render.chunk.translucent_sorting.data.T
 import net.caffeinemc.mods.sodium.client.util.MathUtil;
 import net.caffeinemc.mods.sodium.client.util.sorting.RadixSort;
 import net.minecraft.util.Mth;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.joml.Vector3fc;
 
 import java.util.Arrays;
@@ -52,6 +54,12 @@ import java.util.Random;
 abstract class InnerPartitionBSPNode extends BSPNode {
     private static final int NODE_REUSE_THRESHOLD = 30;
     private static final int MAX_INTERSECTION_ATTEMPTS = 500;
+
+    // NOTE: intersector stat tracking removed during merge
+    private static final int MAX_PRIMARY_INTERSECTOR_ITEMS = 40;
+    private static final float PRIMARY_INTERSECTOR_THRESHOLD = 0.5f;
+
+    private static final Logger LOGGER = LogManager.getLogger(InnerPartitionBSPNode.class);
 
     final Vector3fc planeNormal;
     final int axis;

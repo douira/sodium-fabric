@@ -2,6 +2,7 @@ package net.caffeinemc.mods.sodium.client.render.chunk.occlusion;
 
 import it.unimi.dsi.fastutil.longs.Long2ReferenceMap;
 import net.caffeinemc.mods.sodium.client.render.chunk.RenderSection;
+import net.caffeinemc.mods.sodium.client.render.measurement.Measurement;
 import net.caffeinemc.mods.sodium.client.render.viewport.CameraTransform;
 import net.caffeinemc.mods.sodium.client.render.viewport.Viewport;
 import net.caffeinemc.mods.sodium.client.util.collections.DoubleBufferedQueue;
@@ -34,6 +35,9 @@ public class OcclusionCuller {
 
         this.init(visitor, queues.write(), viewport, searchDistance, useOcclusionCulling, frame);
 
+        if (Measurement.DEBUG_ONLY_RENDER_CURRENT_SECTION) {
+            return;
+        }
         while (queues.flip()) {
             processQueue(visitor, viewport, searchDistance, useOcclusionCulling, frame, queues.read(), queues.write());
         }
@@ -80,7 +84,7 @@ public class OcclusionCuller {
     }
 
     private static boolean isSectionVisible(RenderSection section, Viewport viewport, float maxDistance) {
-        return isWithinRenderDistance(viewport.getTransform(), section, maxDistance) && isWithinFrustum(viewport, section);
+        return isWithinRenderDistance(viewport.getTransform(), section, maxDistance) && (isWithinFrustum(viewport, section) || Measurement.DEBUG_DISABLE_FRUSTUM_CULLING);
     }
 
     private static void visitNeighbors(final WriteQueue<RenderSection> queue, RenderSection section, int outgoing, int frame) {

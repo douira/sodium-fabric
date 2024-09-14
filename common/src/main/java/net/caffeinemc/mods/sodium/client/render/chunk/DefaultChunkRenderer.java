@@ -1,5 +1,6 @@
 package net.caffeinemc.mods.sodium.client.render.chunk;
 
+import net.caffeinemc.mods.sodium.client.render.measurement.Measurement;
 import net.caffeinemc.mods.sodium.client.SodiumClientMod;
 import net.caffeinemc.mods.sodium.client.gl.attribute.GlVertexAttributeBinding;
 import net.caffeinemc.mods.sodium.client.gl.device.CommandList;
@@ -99,7 +100,7 @@ public class DefaultChunkRenderer extends ShaderChunkRenderer {
     }
 
     private static boolean isTranslucentRenderPass(TerrainRenderPass renderPass) {
-        return renderPass.isTranslucent() && SodiumClientMod.options().performance.getSortBehavior() != SortBehavior.OFF;
+        return renderPass.isTranslucent() && SodiumClientMod.options().performance.sortBehavior != SortBehavior.OFF;
     }
 
     private static void fillCommandBuffer(MultiDrawBatch batch,
@@ -126,6 +127,18 @@ public class DefaultChunkRenderer extends ShaderChunkRenderer {
             int sectionIndex = iterator.nextByteAsInt();
 
             var pMeshData = renderDataStorage.getDataPointer(sectionIndex);
+
+            var matchType = Measurement.DEBUG_ONLY_RENDER_TYPE;
+            // var matchType = HeuristicType.BSP;
+            if (matchType != null) {
+                var sectionType = renderRegion.getSection(sectionIndex).getTranslucentData().heuristicType;
+                if (sectionType != matchType) {
+                    continue;
+                }
+            }
+            if (Measurement.DEBUG_REDUCE_RENDER_INTERVAL > 0 && sectionIndex % Measurement.DEBUG_REDUCE_RENDER_INTERVAL != 0) {
+                continue;
+            }
 
             int chunkX = originX + LocalSectionIndex.unpackX(sectionIndex);
             int chunkY = originY + LocalSectionIndex.unpackY(sectionIndex);
