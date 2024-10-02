@@ -61,7 +61,7 @@ public class ChunkBuilderMeshingTask extends ChunkBuilderTask<ChunkBuildOutput> 
         VisGraph occluder = new VisGraph();
 
         ChunkBuildBuffers buffers = buildContext.buffers;
-        buffers.init(renderData, this.render.getSectionIndex());
+        buffers.init(renderData, this.render.getWorldSectionIndex());
 
         BlockRenderCache cache = buildContext.cache;
         cache.init(this.renderContext);

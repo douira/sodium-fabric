@@ -1,6 +1,7 @@
 package net.caffeinemc.mods.sodium.client.render.chunk;
 
 import net.caffeinemc.mods.sodium.client.render.chunk.data.BuiltSectionInfo;
+import net.caffeinemc.mods.sodium.client.render.chunk.lists.RegionSectionTree;
 import net.caffeinemc.mods.sodium.client.render.chunk.occlusion.GraphDirection;
 import net.caffeinemc.mods.sodium.client.render.chunk.occlusion.GraphDirectionSet;
 import net.caffeinemc.mods.sodium.client.render.chunk.occlusion.VisibilityEncoding;
@@ -22,6 +23,7 @@ public class RenderSection {
     // Render Region State
     private final RenderRegion region;
     private final int sectionIndex;
+    private final int worldSectionIndex;
 
     // Chunk Section State
     private final int chunkX, chunkY, chunkZ;
@@ -73,7 +75,8 @@ public class RenderSection {
         int rY = this.getChunkY() & RenderRegion.REGION_HEIGHT_M;
         int rZ = this.getChunkZ() & RenderRegion.REGION_LENGTH_M;
 
-        this.sectionIndex = LocalSectionIndex.pack(rX, rY, rZ);
+        this.sectionIndex = RegionSectionTree.interleave323(rX, rY, rZ);
+        this.worldSectionIndex = LocalSectionIndex.pack(rX, rY, rZ);
 
         this.region = region;
     }
@@ -263,6 +266,10 @@ public class RenderSection {
 
     public int getSectionIndex() {
         return this.sectionIndex;
+    }
+
+    public int getWorldSectionIndex() {
+        return this.worldSectionIndex;
     }
 
     public RenderRegion getRegion() {

@@ -1,7 +1,6 @@
 package net.caffeinemc.mods.sodium.client.render.chunk;
 
 import net.caffeinemc.mods.sodium.client.SodiumClientMod;
-import net.caffeinemc.mods.sodium.client.gl.attribute.GlVertexAttributeBinding;
 import net.caffeinemc.mods.sodium.client.gl.device.CommandList;
 import net.caffeinemc.mods.sodium.client.gl.device.DrawCommandList;
 import net.caffeinemc.mods.sodium.client.gl.device.MultiDrawBatch;
@@ -15,8 +14,8 @@ import net.caffeinemc.mods.sodium.client.render.chunk.data.SectionRenderDataStor
 import net.caffeinemc.mods.sodium.client.render.chunk.data.SectionRenderDataUnsafe;
 import net.caffeinemc.mods.sodium.client.render.chunk.lists.ChunkRenderList;
 import net.caffeinemc.mods.sodium.client.render.chunk.lists.ChunkRenderListIterable;
+import net.caffeinemc.mods.sodium.client.render.chunk.lists.RegionSectionTree;
 import net.caffeinemc.mods.sodium.client.render.chunk.region.RenderRegion;
-import net.caffeinemc.mods.sodium.client.render.chunk.shader.ChunkShaderBindingPoints;
 import net.caffeinemc.mods.sodium.client.render.chunk.shader.ChunkShaderInterface;
 import net.caffeinemc.mods.sodium.client.render.chunk.terrain.TerrainRenderPass;
 import net.caffeinemc.mods.sodium.client.render.chunk.translucent_sorting.SortBehavior;
@@ -111,44 +110,86 @@ public class DefaultChunkRenderer extends ShaderChunkRenderer {
                                           boolean useBlockFaceCulling) {
         batch.clear();
 
-        var iterator = renderList.sectionsWithGeometryIterator(pass.isTranslucent());
-
-        if (iterator == null) {
-            return;
-        }
+        var reverseMask = pass.isTranslucent() ? 0b111 : 0b000;
+        long[] sections = renderList.getSectionsWithGeometry();
 
         // The origin of the chunk in world space
         int originX = renderRegion.getChunkX();
         int originY = renderRegion.getChunkY();
         int originZ = renderRegion.getChunkZ();
 
-        while (iterator.hasNext()) {
-            int sectionIndex = iterator.nextByteAsInt();
+        var cameraOffsetX = (camera.intX >> 4) - originX + 1;
+        var cameraOffsetY = (camera.intY >> 4) - originY + 1;
+        var cameraOffsetZ = (camera.intZ >> 4) - originZ + 1;
 
-            var pMeshData = renderDataStorage.getDataPointer(sectionIndex);
+        var entryOrderModulator = RegionSectionTree.getChildOrderModulatorXZ(
+            originX, originZ, 4, cameraOffsetX, cameraOffsetZ
+        ) ^ (reverseMask & 0b11);
 
-            int chunkX = originX + LocalSectionIndex.unpackX(sectionIndex);
-            int chunkY = originY + LocalSectionIndex.unpackY(sectionIndex);
-            int chunkZ = originZ + LocalSectionIndex.unpackZ(sectionIndex);
-
-            // The bit field of "visible" geometry sets which should be rendered
-            int slices;
-
-            if (useBlockFaceCulling) {
-                slices = getVisibleFaces(camera.intX, camera.intY, camera.intZ, chunkX, chunkY, chunkZ);
-            } else {
-                slices = ModelQuadFacing.ALL;
-            }
-
-            // Mask off any geometry sets which are empty (contain no geometry)
-            slices &= SectionRenderDataUnsafe.getSliceMask(pMeshData);
-
-            // If there are no geometry sets to render, don't try to build a draw command buffer for this section
-            if (slices == 0) {
+        for (var entryCounter = 0; entryCounter < 4; entryCounter++) {
+            var entryIndex = entryCounter ^ entryOrderModulator;
+            var entry = sections[entryIndex];
+            if (entry == 0) {
                 continue;
             }
 
-            addDrawCommands(batch, pMeshData, slices);
+            var outerNodeOrigin = entryIndex << 6;
+            var outerOrderModulator = (RegionSectionTree.getChildOrderModulatorXYZ(
+                RegionSectionTree.deinterleaveX(outerNodeOrigin),
+                0,
+                RegionSectionTree.deinterleaveZ(outerNodeOrigin),
+                2, cameraOffsetX, cameraOffsetY, cameraOffsetZ
+            ) ^ reverseMask) << 3;
+
+            for (var outerCounter = 0; outerCounter < 64; outerCounter += 8) {
+                var outerIndex = outerCounter ^ outerOrderModulator;
+                if ((entry & (0xFFL << outerIndex)) == 0) {
+                    continue;
+                }
+
+                var innerNodeOrigin = outerNodeOrigin | outerIndex;
+                var innerOrderModulator = RegionSectionTree.getChildOrderModulatorXYZ(
+                    RegionSectionTree.deinterleaveX(innerNodeOrigin),
+                    RegionSectionTree.deinterleaveY(innerNodeOrigin),
+                    RegionSectionTree.deinterleaveZ(innerNodeOrigin),
+                    1, cameraOffsetX, cameraOffsetY, cameraOffsetZ
+                ) ^ reverseMask;
+
+                var end = outerIndex + 8;
+                for (var innerCounter = outerIndex; innerCounter < end; innerCounter++) {
+                    var innerIndex = innerCounter ^ innerOrderModulator;
+                    if ((entry & (1L << innerIndex)) == 0) {
+                        continue;
+                    }
+
+                    var sectionIndex = innerNodeOrigin | innerIndex;
+
+                    var pMeshData = renderDataStorage.getDataPointer(sectionIndex);
+
+                    int chunkX = originX + RegionSectionTree.deinterleaveX(sectionIndex);
+                    int chunkY = originY + RegionSectionTree.deinterleaveY(sectionIndex);
+                    int chunkZ = originZ + RegionSectionTree.deinterleaveZ(sectionIndex);
+
+                    // The bit field of "visible" geometry sets which should be rendered
+                    int slices;
+
+                    if (useBlockFaceCulling) {
+                        slices = getVisibleFaces(camera.intX, camera.intY, camera.intZ, chunkX, chunkY, chunkZ);
+                    } else {
+                        slices = ModelQuadFacing.ALL;
+                    }
+
+                    // Mask off any geometry sets which are empty (contain no geometry)
+                    slices &= SectionRenderDataUnsafe.getSliceMask(pMeshData);
+
+                    // If there are no geometry sets to render, don't try to build a draw command buffer for this section
+                    if (slices == 0) {
+                        continue;
+                    }
+
+                    addDrawCommands(batch, pMeshData, slices);
+                }
+            }
         }
     }
 

@@ -11,7 +11,7 @@ import org.jetbrains.annotations.Nullable;
 public class ChunkRenderList {
     private final RenderRegion region;
 
-    private final byte[] sectionsWithGeometry = new byte[RenderRegion.REGION_SIZE];
+    private final long[] sectionsWithGeometry = RegionSectionTree.makeTree();
     private int sectionsWithGeometryCount = 0;
 
     private final byte[] sectionsWithSprites = new byte[RenderRegion.REGION_SIZE];
@@ -47,22 +47,24 @@ public class ChunkRenderList {
         int index = render.getSectionIndex();
         int flags = render.getFlags();
 
-        this.sectionsWithGeometry[this.sectionsWithGeometryCount] = (byte) index;
-        this.sectionsWithGeometryCount += (flags >>> RenderSectionFlags.HAS_BLOCK_GEOMETRY) & 1;
-
-        this.sectionsWithSprites[this.sectionsWithSpritesCount] = (byte) index;
-        this.sectionsWithSpritesCount += (flags >>> RenderSectionFlags.HAS_ANIMATED_SPRITES) & 1;
-
-        this.sectionsWithEntities[this.sectionsWithEntitiesCount] = (byte) index;
-        this.sectionsWithEntitiesCount += (flags >>> RenderSectionFlags.HAS_BLOCK_ENTITIES) & 1;
-    }
-
-    public @Nullable ByteIterator sectionsWithGeometryIterator(boolean reverse) {
-        if (this.sectionsWithGeometryCount == 0) {
-            return null;
+        if (((flags >>> RenderSectionFlags.HAS_BLOCK_GEOMETRY) & 1) != 0) {
+            RegionSectionTree.add(this.sectionsWithGeometry, index);
+            this.sectionsWithGeometryCount++;
         }
 
-        return new ReversibleByteArrayIterator(this.sectionsWithGeometry, this.sectionsWithGeometryCount, reverse);
+        if (((flags >>> RenderSectionFlags.HAS_ANIMATED_SPRITES) & 1) != 0) {
+            this.sectionsWithSprites[this.sectionsWithSpritesCount] = (byte) index;
+            this.sectionsWithSpritesCount++;
+        }
+
+        if (((flags >>> RenderSectionFlags.HAS_BLOCK_ENTITIES) & 1) != 0) {
+            this.sectionsWithEntities[this.sectionsWithEntitiesCount] = (byte) index;
+            this.sectionsWithEntitiesCount++;
+        }
+    }
+
+    public long[] getSectionsWithGeometry() {
+        return this.sectionsWithGeometry;
     }
 
     public @Nullable ByteIterator sectionsWithSpritesIterator() {
