@@ -123,8 +123,7 @@ public class DefaultChunkRenderer extends ShaderChunkRenderer {
         var cameraOffsetZ = (camera.intZ >> 4) - originZ + 1;
 
         var entryOrderModulator = RegionSectionTree.getChildOrderModulatorXZ(
-            originX, originZ, 4, cameraOffsetX, cameraOffsetZ
-        ) ^ (reverseMask & 0b11);
+                4, cameraOffsetX, cameraOffsetZ) ^ (reverseMask & 0b11);
 
         for (var entryCounter = 0; entryCounter < 4; entryCounter++) {
             var entryIndex = entryCounter ^ entryOrderModulator;
@@ -162,7 +161,7 @@ public class DefaultChunkRenderer extends ShaderChunkRenderer {
                         continue;
                     }
 
-                    var sectionIndex = innerNodeOrigin | innerIndex;
+                    var sectionIndex = outerNodeOrigin | innerIndex;
 
                     var pMeshData = renderDataStorage.getDataPointer(sectionIndex);
 

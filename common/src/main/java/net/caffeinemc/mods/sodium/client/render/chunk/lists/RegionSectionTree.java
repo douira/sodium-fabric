@@ -41,8 +41,8 @@ public class RegionSectionTree {
             | ((z + childFullSectionDim - cameraSectionOffsetZ) >>> 31) << 2;
     }
 
-    public static int getChildOrderModulatorXZ(int x, int z, int childFullSectionDim, int cameraSectionOffsetX, int cameraSectionOffsetZ) {
-        return (x + childFullSectionDim - cameraSectionOffsetX) >>> 31
-                | ((z + childFullSectionDim - cameraSectionOffsetZ) >>> 31) << 1;
+    public static int getChildOrderModulatorXZ(int childFullSectionDim, int cameraSectionOffsetX, int cameraSectionOffsetZ) {
+        return (childFullSectionDim - cameraSectionOffsetX) >>> 31
+                | ((childFullSectionDim - cameraSectionOffsetZ) >>> 31) << 1;
     }
 }
