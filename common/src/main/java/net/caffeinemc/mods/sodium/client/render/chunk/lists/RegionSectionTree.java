@@ -11,6 +11,12 @@ public class RegionSectionTree {
         tree[treeIndex] |= 1L << bitIndex;
     }
 
+    public static void remove(long[] tree, int sectionIndex) {
+        int treeIndex = sectionIndex >> 6;
+        int bitIndex = sectionIndex & 0b111111;
+        tree[treeIndex] &= ~(1L << bitIndex);
+    }
+
     public static int interleave323(int x, int y, int z) {
         // fewer operations than interleaving separately and then combining
         return (x & 0b001) |

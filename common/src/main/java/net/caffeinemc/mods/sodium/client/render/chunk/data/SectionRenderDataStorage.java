@@ -2,6 +2,7 @@ package net.caffeinemc.mods.sodium.client.render.chunk.data;
 
 import net.caffeinemc.mods.sodium.client.gl.arena.GlBufferSegment;
 import net.caffeinemc.mods.sodium.client.model.quad.properties.ModelQuadFacing;
+import net.caffeinemc.mods.sodium.client.render.chunk.lists.RegionSectionTree;
 import net.caffeinemc.mods.sodium.client.render.chunk.region.RenderRegion;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -32,6 +33,7 @@ public class SectionRenderDataStorage {
     private final @Nullable GlBufferSegment @Nullable[] elementAllocations;
 
     private final long pMeshDataArray;
+    private final long[] presentSections = new long[4];
 
     public SectionRenderDataStorage(boolean storesIndices) {
         this.vertexAllocations = new GlBufferSegment[RenderRegion.REGION_SIZE];
@@ -43,6 +45,10 @@ public class SectionRenderDataStorage {
         }
 
         this.pMeshDataArray = SectionRenderDataUnsafe.allocateHeap(RenderRegion.REGION_SIZE);
+    }
+
+    public long[] getPresentSections() {
+        return this.presentSections;
     }
 
     public void setVertexData(int localSectionIndex,
@@ -74,6 +80,9 @@ public class SectionRenderDataStorage {
         }
 
         SectionRenderDataUnsafe.setSliceMask(pMeshData, sliceMask);
+        if (sliceMask != 0) {
+            RegionSectionTree.add(this.presentSections, localSectionIndex);
+        }
     }
 
     public void setIndexData(int localSectionIndex, GlBufferSegment allocation) {
@@ -119,6 +128,10 @@ public class SectionRenderDataStorage {
         this.vertexAllocations[localSectionIndex] = null;
 
         var pMeshData = this.getDataPointer(localSectionIndex);
+
+        if (SectionRenderDataUnsafe.getSliceMask(pMeshData) != 0) {
+            RegionSectionTree.remove(this.presentSections, localSectionIndex);
+        }
 
         var baseElement = SectionRenderDataUnsafe.getBaseElement(pMeshData);
         SectionRenderDataUnsafe.clear(pMeshData);

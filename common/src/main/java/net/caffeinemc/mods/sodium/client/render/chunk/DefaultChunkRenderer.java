@@ -112,6 +112,7 @@ public class DefaultChunkRenderer extends ShaderChunkRenderer {
 
         var reverseMask = pass.isTranslucent() ? 0b111 : 0b000;
         long[] sections = renderList.getSectionsWithGeometry();
+        long[] passSectionMask = renderDataStorage.getPresentSections();
 
         // The origin of the chunk in world space
         int originX = renderRegion.getChunkX();
@@ -127,7 +128,7 @@ public class DefaultChunkRenderer extends ShaderChunkRenderer {
 
         for (var entryCounter = 0; entryCounter < 4; entryCounter++) {
             var entryIndex = entryCounter ^ entryOrderModulator;
-            var entry = sections[entryIndex];
+            var entry = sections[entryIndex] & passSectionMask[entryIndex];
             if (entry == 0) {
                 continue;
             }
