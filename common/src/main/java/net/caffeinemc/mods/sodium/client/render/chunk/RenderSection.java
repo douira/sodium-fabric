@@ -67,6 +67,7 @@ public class RenderSection {
     // Pending Update State
     @Nullable
     private CancellationToken taskCancellationToken = null;
+    private long lastMeshingTaskEffort = 1;
 
     @Nullable
     private ChunkUpdateType pendingUpdateType;
@@ -168,6 +169,14 @@ public class RenderSection {
     private void clearRenderState() {
         this.region.clearSectionRenderState(this.sectionIndex);
         this.visibilityData = VisibilityEncoding.NULL;
+    }
+
+    public void setLastMeshingTaskEffort(long effort) {
+        this.lastMeshingTaskEffort = effort;
+    }
+
+    public long getLastMeshingTaskEffort() {
+        return this.lastMeshingTaskEffort;
     }
 
     /**
